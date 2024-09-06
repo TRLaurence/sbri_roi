@@ -3,14 +3,14 @@
 
 
 add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overlap_x_axis = FALSE) {
-  font_family <- "Georgia"
+  font_family <- "serif"
   
   output_file <- paste0(fig_path, case_study, "_", chart_name, ".png")
   
   if (avoid_overlap_x_axis) {
-    x_axis_theme <- element_text(family = add_theme_and_save, size = 10, angle = 45, hjust = 1)
+    x_axis_theme <- element_text(family = font_family, size = 10, angle = 45, hjust = 1)
   } else { 
-    x_axis_theme <- element_text(family = add_theme_and_save, size = 10)
+    x_axis_theme <- element_text(family = font_family, size = 10)
   }
   
   p <- p +  
@@ -22,9 +22,9 @@ add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overla
           axis.text.y = element_text(family = font_family, size = 10),
           legend.position = "top",
           legend.justification = "right",
-          legend.title = element_text(family = font_family, size = 10, color = color_palette_sequential[["Teal Black"]]),
-          legend.text = element_text(family = font_family, size = 8, color = color_palette_sequential[["Teal Black"]]),
-          strip.text = element_text(family = font_family, size = 10, color = color_palette_sequential[["Teal"]])  # Facet title font
+          legend.title = element_text(family = font_family, size = 10),
+          legend.text = element_text(family = font_family, size = 8),
+          strip.text = element_text(family = font_family, size = 10)  # Facet title font
     )
   
   

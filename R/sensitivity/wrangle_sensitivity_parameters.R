@@ -49,7 +49,7 @@ distribution_mapping <- function(parameter_val) {
     "adjustment_for_sub_population" = "beta", # This value is bounded by 0 and 1
     "coverage_init" = "beta", # This value is bounded by 0 and 1
     "coverage_end" = "beta", # This value is bounded by 0 and 1
-    "qaly_gain" = "normal", # This value can be positive or negative
+    "qaly_gains" = "normal", # This value can be positive or negative
     "healthcare_cost_savings" = "normal", # This cost can be positive or negative because it's net
     "productivity_gains" = "normal", # This cost can be positive or negative because it's net
     "socialcare_cost_savings" = "normal", # This cost can be positive or negative because it's net
@@ -83,6 +83,11 @@ beta_params <- function(mean_value, std_dev) {
 generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta")) {
   z_value <- 1.96  # for 95% confidence interval
   ci_width <- upper_bound - lower_bound
+  
+  if (ci_width <= 0) {
+    return(rep(mean_value, n))
+  }
+  
   std_dev <- ci_width / (2 * z_value)  # Calculate the standard deviation
   
   distribution <- match.arg(distribution)  # Ensure the distribution is one of the valid options
@@ -118,7 +123,7 @@ generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distr
   return(samples)
 }
 
-create_matching_probabilistic_df <- function(case_study_vals, parameters_to_change, number_of_samples = 1000) {
+create_matching_probabilistic_df <- function(case_study_vals, parameters_to_change, number_of_samples) {
   data_frame_of_vals <- data.frame(scenario = paste0("probabilistic", as.character(1:number_of_samples)))
   for (j in 1:length(parameters_to_change)) {
     param <- parameters_to_change[j]
@@ -141,7 +146,7 @@ create_matching_probabilistic_df <- function(case_study_vals, parameters_to_chan
   return(data_frame_of_vals)
 }
 
-set_up_probabilistic <-  function(parameter_vals) {
+set_up_probabilistic <-  function(parameter_vals, number_of_samples) {
   parameters_to_change <- names(parameter_vals)[str_detect(names(parameter_vals), "_value")]
   case_studies <- unique(parameter_vals$case_study_number)
   
@@ -150,7 +155,7 @@ set_up_probabilistic <-  function(parameter_vals) {
     case_study <- case_studies[i]
     case_study_vals <- filter(parameter_vals, case_study_number == case_study)
     
-    data_frame_of_vals <- create_matching_probabilistic_df(case_study_vals, parameters_to_change)
+    data_frame_of_vals <- create_matching_probabilistic_df(case_study_vals, parameters_to_change, number_of_samples)
     
     list_of_dfs[[i]] <- data_frame_of_vals
   }
@@ -160,7 +165,7 @@ set_up_probabilistic <-  function(parameter_vals) {
     select(!contains("upper") & !contains("lower"))
 }
 
-set_up_all_sensitivities <- function(parameter_vals, deterministic_sensitivity, probabilistic_sensitivity) {
+set_up_all_sensitivities <- function(parameter_vals, deterministic_sensitivity, probabilistic_sensitivity, number_of_samples) {
   reference_df <- set_up_reference(parameter_vals)
   all_df <- reference_df
   if(deterministic_sensitivity) {
@@ -168,7 +173,7 @@ set_up_all_sensitivities <- function(parameter_vals, deterministic_sensitivity, 
     all_df <- bind_rows(all_df, deterministic_df)
   }
   if(probabilistic_sensitivity) {
-    probabilistic_df <- set_up_probabilistic(parameter_vals)
+    probabilistic_df <- set_up_probabilistic(parameter_vals, number_of_samples)
     all_df <- bind_rows(all_df, probabilistic_df)
   }
    

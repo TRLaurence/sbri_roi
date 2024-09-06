@@ -28,7 +28,7 @@ replace_init_populations <- function(parameter_vals) {
   return(parameter_vals)
 }
 
-parameter_loader <- function(raw_path, parameter_file) {
+parameter_loader <- function(raw_path, parameter_file, case_studies = NULL) {
   # Load the parameter file
   parameter_file_path <- file.path(raw_path, parameter_file)
   
@@ -37,6 +37,10 @@ parameter_loader <- function(raw_path, parameter_file) {
   parameter_vals <- replace_init_populations(parameter_vals)
   
   parameter_vals <- filter(parameter_vals, !is.na(initial_population_value))
+  
+  if (!is.null(case_studies)) {
+    parameter_vals <- filter(parameter_vals, case_study_number %in% case_studies)
+  }
   
   return(parameter_vals)
 } 
