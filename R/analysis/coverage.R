@@ -42,6 +42,17 @@ estimate_coverage <- function(init_coverage, final_coverage, year_start_coverage
   return(coverage_data)
 }
 
+coverage_adjust_row <- function(row_val, years_of_coverage) {
+  init_coverage <- row_val[["coverage_init_value"]]
+  final_coverage <- row_val[["coverage_end_value"]]
+  year_start_coverage <- row_val[["coverage_init_year"]]
+  year_final_coverage <- row_val[["coverage_end_year"]]
+  coverage_df <- estimate_coverage(init_coverage, final_coverage, year_start_coverage, year_final_coverage, n_years = years_of_coverage)
+  
+  return(coverage_df)
+}
+
+
 # Example usage:
 # Initial coverage of 10%, final coverage of 90%, over 10 years
 
