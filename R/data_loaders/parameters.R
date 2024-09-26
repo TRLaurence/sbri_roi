@@ -1,23 +1,51 @@
 # Check parameter values, ensure they're consistent
 
-# Import anything from GBD or ONS pop needed for the initial values
+source("R/utils/paths.R")
+source("R/data_loaders/ihme.R")
+source("R/data_loaders/population.R")
 
 library(dplyr)
 library(tidyr)
 library(readr)
 
+case <- 99998
+
+generate_replacement_init_populations <- function(initial_population_definer, initial_population_label) {
+  
+  if(initial_population_definer == "disease") {
+    measure_val <- str_trim(str_extract(initial_population_label, "Prevalence|Incidence"))
+    disease_val <- str_trim(str_remove_all(initial_population_label, "Prevalence|Incidence"))
+    
+    replacement_values <- data_loader_gbd(measure_val, disease_val)
+    
+  } else if (initial_population_definer == "population") {
+    replacement_values <- data_loader_ons_population(initial_population_label)
+  } else {
+    stop("Initial population definer not recognised")
+  }
+  
+  stopifnot(nrow(replacement_values) == 1)
+  stopifnot(names(replacement_values) == c("init_pop_value", "init_pop_lower", "init_pop_upper"))  
+  return(replacement_values)
+}
+
 replace_init_populations <- function(parameter_vals) {
   cases_to_replace <- filter(parameter_vals, 
-                             initial_population_value == "Not applicable") %>%
+                             is.na(initial_population_value)) %>%
     select(case_study_number) %>%
     pull()
   
-  
-  # TODO include the GBD and population data values here
+  # TOD) include the GBD and population data values here
   for (case in cases_to_replace) {
-    parameter_vals[parameter_vals$case_study_number == case, "initial_population_value"] <- "1000"
-    parameter_vals[parameter_vals$case_study_number == case, "initial_population_upper"] <- "1200"
-    parameter_vals[parameter_vals$case_study_number == case, "initial_population_lower"] <- "800"
+    initial_population_definer <- parameter_vals[parameter_vals$case_study_number == case, "initial_population_definer"]
+    initial_population_label <- parameter_vals[parameter_vals$case_study_number == case, "initial_population_label"]
+    
+    replacement_values <- generate_replacement_init_populations(initial_population_definer, initial_population_label)
+    # Replace values 
+    parameter_vals[parameter_vals$case_study_number == case, "initial_population_value"] <- replacement_values$init_pop_value
+    parameter_vals[parameter_vals$case_study_number == case, "initial_population_lower"] <- replacement_values$init_pop_lower
+    parameter_vals[parameter_vals$case_study_number == case, "initial_population_upper"] <- replacement_values$init_pop_upper
+    
   }
   
   parameter_vals <- parameter_vals %>%
@@ -43,4 +71,19 @@ parameter_loader <- function(raw_path, parameter_file, case_studies = NULL) {
   }
   
   return(parameter_vals)
-} 
+}
+
+graph_names_loader <- function(raw_path, parameter_file) {
+  parameter_file_path <- file.path(raw_path, parameter_file)
+  
+  parameter_vals <- read_csv(parameter_file_path)
+  
+  rel_param_cols <- names(parameter_vals)[str_detect(names(parameter_vals), "_name|_number")]
+  
+  name_vals <- parameter_vals %>%
+    select(all_of(rel_param_cols))
+  
+  return(name_vals)
+  
+           
+}

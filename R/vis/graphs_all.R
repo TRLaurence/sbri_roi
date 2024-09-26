@@ -2,6 +2,7 @@ source("R/vis/graph_utils.R")
 library(ggplot2)
 library(tibble)
 library(waterfalls)
+library(scales)
 
 # graph_template <- function(fig_path, case_study_num, chart_df) {
 #   chart_name <- "default"
@@ -21,9 +22,9 @@ library(waterfalls)
 graph_probability_histogram <- function(fig_path, case_study_num, probabilistic_df) {
   chart_name <- "prob_histogram"
   p <- ggplot(probabilistic_df, aes(x = roi)) +
-    geom_histogram(aes(y = ..count../sum(..count..)), bins = 20, fill = "lightblue", color = "black") +
+    geom_histogram(aes(y = ..count../sum(..count..)), bins = 20, fill = COLOR_CATEGORICAL['Dark Blue'], color = "black") +
     # At vertical line for reference
-    geom_vline(aes(xintercept = reference), color = "red", linetype = "dashed") +
+    geom_vline(aes(xintercept = reference), color = COLOR_CATEGORICAL['Red'], linetype = "dashed") +
     labs(title = "Probability Histogram of ROIs", x = "ROI", y = "Probability")
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
@@ -33,7 +34,7 @@ graph_probability_histogram <- function(fig_path, case_study_num, probabilistic_
 graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", summary_ci_df) {
   chart_name <- "roi_summary_ci"
   # Example plot
-  p <- ggplot(summary_ci_df, aes(x = factor(case_study), y = reference)) +
+  p <- ggplot(summary_ci_df, aes(x = factor(case_study), y = reference), color = COLOR_CATEGORICAL['Dark Blue']) +
     geom_point(size = 3) +  # Points for ROI
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +  # Error bars
     labs(
@@ -50,7 +51,7 @@ graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", sum
 graph_boxplot_probability_comparison <- function(fig_path, case_study_num = "comparison", comparison_probability_df) {
   chart_name <- "comparison_boxplot"
   p <- ggplot(comparison_probability_df, aes(x = case_study, y = roi, group = case_study)) +
-    geom_boxplot() +
+    geom_boxplot(color = COLOR_CATEGORICAL['Dark Blue']) +
     coord_flip() +
     labs(title = "Comparison of ROIs", x = "Case Study", y = "ROI")
   
@@ -61,7 +62,7 @@ graph_boxplot_probability_comparison <- function(fig_path, case_study_num = "com
 graph_uptake_projection <- function(fig_path, case_study_num, uptake_df) {
   chart_name <- "uptake_projection"
   p <- ggplot(uptake_df, aes(x = year, y = coverage, group = scenario)) +
-    geom_line(alpha = 0.1) +
+    geom_line(alpha = 0.1, color = COLOR_CATEGORICAL['Dark Blue']) +
     labs(title = "Uptake Projection", x = "Year", y = "Uptake")
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
@@ -70,7 +71,7 @@ graph_uptake_projection <- function(fig_path, case_study_num, uptake_df) {
 
 graph_uptake_confidence_interval <- function(fig_path, case_study_num, uptake_ci_df) {
   chart_name <- "uptake_confidence_interval"
-  p <- ggplot(uptake_ci_df, aes(x = year, y = reference_coverage)) +
+  p <- ggplot(uptake_ci_df, aes(x = year, y = reference_coverage, color = COLOR_CATEGORICAL['Dark Blue'])) +
     # Add a line just for reference_case
     geom_line() +
     # Add a swathe for the confidence interval
@@ -97,11 +98,11 @@ graph_tornado_determ <- function(fig_path, case_study_num, graph_data) {
     geom_rect(data = graph_data, aes(xmin = pmin(lower, base), 
                                      xmax = pmax(lower, base),
                                      ymin = index - 0.4, ymax = index + 0.4),
-              fill = 'red', color = 'black') +
+              fill = COLOR_STOPLIGHT['Stop'], color = 'black') +
     geom_rect(data = graph_data, aes(xmin = pmin(upper, base), 
                                      xmax = pmax(upper, base),
                                      ymin = index - 0.4, ymax = index + 0.4),
-              fill = 'green', color = 'black') +
+              fill = COLOR_STOPLIGHT['Go'], color = 'black') +
     
     # Add a dashed vertical line for the base value
     geom_vline(xintercept = base_value, linetype = "dashed", color = "black") +
@@ -119,14 +120,69 @@ graph_tornado_determ <- function(fig_path, case_study_num, graph_data) {
   return(p)
 }
 
+waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FALSE) {
+  # Custom y-axis label formatter
+  y_formatter <- function(x) {
+    format_units(x, units)
+  }
+  log_formatter <- function(p, log_y) {
+    if (log_y) {
+      p <- p +
+        scale_y_log10(labels = y_formatter) 
+    } else {
+      p <- p +
+        scale_y_continuous(labels = y_formatter)
+    }
+  }
 
+  # Create the plot
+  p <- ggplot(data) +
+    geom_rect(aes(xmin = min, xmax = max, ymin = start, ymax = end, fill = sign), color = "black") +
+    scale_fill_manual(values = c("Positive" = COLOR_STOPLIGHT[['Go']], "Negative" = COLOR_STOPLIGHT[['Stop']])) +
+    scale_x_continuous(breaks = (data$min + data$max) / 2, labels = data$category)
+  
+  p <- log_formatter(p, log_y)       
+  
+  # Create data frame for segments (connecting lines)
+  if (nrow(data) > 1) {
+    segment_data <- data.frame(
+      x = data$max[-nrow(data)],
+      xend = data$min[-1],
+      y = data$end[-nrow(data)],
+      yend = data$start[-1]
+    )
+    p <- p + geom_segment(data = segment_data, aes(x = x, xend = xend, y = y, yend = yend), linetype = "dotted")
+  }
+  
+  # Add value labels if show_values is TRUE
+  if (show_values) {
+    data$mid_x <- (data$min + data$max) / 2
+    data$mid_y <- (data$start + data$end) / 2
+    data$formatted_value <- format_units(data$value, units)
+    
+    # Explicitly specify the data in geom_text
+    if (log_y) {
+      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3)  + 
+        scale_color_manual(values = c("#000000", "#FFFFFF"))
+    } else {
+      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3)   + 
+        scale_color_manual(values = c("#000000", "#FFFFFF"))
+    }
+  }
+  
+  # Display the plot
+  return(p)
+}
 
-
-graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df) {
+graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df, name_vals) {
   chart_name <- "pop_waterfall"
   
-  p <- waterfall(pop_waterfall_chart_df, calc_total = TRUE)
+  p <- waterfall_chart(pop_waterfall_chart_df)
   
+  p <- p +
+    labs(x = "Adjustment",
+         y = "Modelled population (people)")
+    
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
   
   return(p)
@@ -136,7 +192,11 @@ graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df
 graph_benefit_waterfall <- function(fig_path, case_study_num, benefit_waterfall_chart_df) {
   chart_name <- "benefit_waterfall"
   
-  p <- waterfall(benefit_waterfall_chart_df, calc_total = TRUE)
+  p <- waterfall_chart(benefit_waterfall_chart_df)
+  
+  p <- p +
+    labs(x = "Benefit type",
+         y = "Net benefit (£)")
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, avoid_overlap_x_axis = TRUE)
   
@@ -149,11 +209,11 @@ graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_
   
   # Define specific colors for each benefit type and research costs
   colors <- c(
-    "research_costs" = "#e31a1c",            # Red for costs
-    "qaly_gains" = "#66c2a5",        # Light green
-    "healthcare_cost_savings" = "#99d8c9",  # Pale green
-    "socialcare_cost_savings" = "#41ae76",  # Medium green
-    "productivity_gains" = "#238b45"       # Dark green
+    "research_costs" = COLOR_STOPLIGHT[['Stop']],            # Red for costs
+    "qaly_gains" = COLOR_CATEGORICAL[["Dark Blue"]],        
+    "healthcare_cost_savings" = COLOR_CATEGORICAL[["Purple"]],  
+    "socialcare_cost_savings" = COLOR_CATEGORICAL[["Teal"]],  
+    "productivity_gains" = COLOR_CATEGORICAL[["Green"]]       
   )
   
   
@@ -176,6 +236,7 @@ graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_
     # Add text at the top with the ROI
     annotate("text", x = 1.5, y = cost_max , label = paste("ROI: ", roi_val), vjust = 1.5, hjust = 0.5, size = 5) +
     labs(title = "Research Costs vs. Stacked Benefits", x = "", y = "Value") +
+    scale_y_continuous(labels = label_comma()) +
     scale_fill_manual(values = colors) 
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, avoid_overlap_x_axis = TRUE)
@@ -280,6 +341,65 @@ format_uptake_to_confidence_interval <- function(coverage_df, confidence = 0.95)
   return(uptake_ci_df)
 }
 
+
+remap_to_fancy_categories <- function(variable, fancy_categories) {
+  # If fancy categories is a dataframe or tibble, convert to a named vector
+  if (is.data.frame(fancy_categories) | is_tibble(fancy_categories)) {
+    names(fancy_categories) <- str_remove(names(fancy_categories), "_name")
+    # Convert first row of the dataframe to named vector
+    fancy_categories <- setNames(as.vector(unlist(fancy_categories[1, ])), names(fancy_categories))
+  }
+  
+  # Remap the variable to the fancy categories
+  remapped_variable <- as.vector(fancy_categories[variable])
+  
+  return(remapped_variable)
+}
+
+format_df_for_waterfall <- function(data, fancy_categories = NULL) {
+  # Ensure data has 'category' and 'value' columns
+  if (!all(c("category", "value") %in% names(data))) {
+    stop("Data must contain 'category' and 'value' columns")
+  }
+  
+  # Calculate total
+  total_value <- sum(data$value)
+  total_category <- "total"
+  
+  # Add total row to data
+  total_row <- data.frame(
+    category = total_category,
+    value = total_value
+  )
+  
+  # Combine data and total_row
+  data <- rbind(data, total_row)
+  
+  # Calculate cumulative sums for start and end positions
+  data$start <- c(1, head(cumsum(data$value), -1))
+  data$end <- c(head(cumsum(data$value), -1), 1)
+  
+  # Determine if the value is positive or negative
+  data$sign <- ifelse(data$value >= 0, "Positive", "Negative")
+  
+  if (!is.null(fancy_categories)) {
+    data$category <- remap_to_fancy_categories(data$category, fancy_categories)
+    data$category <- str_wrap(data$category, width = 20)
+  } 
+  print(data$category)
+  data$category <- factor(data$category, levels = data$category)
+  print(data$category)
+  # Position for rectangles
+  data$min <- as.numeric(data$category) - 0.4
+  data$max <- as.numeric(data$category) + 0.4
+  
+  data$text_offset <- ifelse(abs(data$value) / max(abs(data$value)) < 0.05, 0.05*max(data$value), 0)
+  # Hex for white or black text
+  data$text_color <- ifelse(data$text_offset == 0, "#FFFFFF", "#000000")
+  
+  return(data)
+}
+
 format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_study_num, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains")) {
   stopifnot(all(c(expected_bridge_cols %in% colnames(granular_benefits_df))))
   
@@ -309,8 +429,13 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
     rownames_to_column("category") %>%
     rename(value = 2) %>%
     mutate(lag_value = lag(value, default = 0)) %>%
-    mutate(values = value - lag_value) %>%
-    select(category, values)
+    mutate(value = value - lag_value) %>%
+    select(category, value)
+  
+  pop_fancy_categories <- filter(name_vals, case_study_number == case_study_num) %>%
+    select(-case_study_number) 
+  
+  pop_waterfall_chart_df <- format_df_for_waterfall(pop_waterfall_chart_df, pop_fancy_categories)
   
   benefitting_pop <- all_waterfall_df$benefitting_pop
   
@@ -319,10 +444,20 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
     t() %>%
     as.data.frame() %>%
     rownames_to_column("category") %>%
-    rename(values = 2) %>%
-    mutate(values = values / benefitting_pop) %>%
-    mutate(values = round(values, 0)) 
+    rename(value = 2) %>%
+    mutate(value = value / benefitting_pop) %>%
+    mutate(value = round(value, 0)) 
   
+  benefit_fancy_categories <- c("qaly_gains" = "QALY gains", 
+                                "healthcare_cost_savings" = "Healthcare cost savings", 
+                                "socialcare_cost_savings" = "Social care cost savings", 
+                                "productivity_gains" = "Productivity gains",
+                                "research_costs" = "Research costs",
+                                "total" = "Total benefits")
+  
+  benefit_waterfall_chart_df <- format_df_for_waterfall(benefit_waterfall_chart_df, benefit_fancy_categories)
+  
+    
   stacked_roi_chart_df <- all_waterfall_df %>%
     select(all_of(c("research_costs", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains"))) %>%
     t() %>%
@@ -330,9 +465,10 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
     rownames_to_column("category") %>%
     rename(values = 2) %>%
     mutate(values = round(values, 0)) %>%
-    mutate(category = factor(category, levels = c("qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "research_costs"))) %>%
     mutate(position = ifelse(category == "research_costs", "Costs", "Benefits")) %>%
-    mutate(position = factor(position, levels = c("Costs", "Benefits")))
+    mutate(position = factor(position, levels = c("Costs", "Benefits"))) %>%
+    mutate(category = remap_to_fancy_categories(category, benefit_fancy_categories)) %>%
+    mutate(category = factor(category, levels = category)) 
   
   return_list <- list(years_benefits_assumed_to_accrue = years_benefits_assumed_to_accrue,
                       all_waterfall_df = all_waterfall_df,
@@ -369,4 +505,7 @@ case_study_specific_graphs <- function(total_benefits_df, granular_benefits_df, 
   print(graph_pop_waterfall(fig_path, case_study_num, all_waterfall_list$pop_waterfall_chart_df))
   print(graph_benefit_waterfall(fig_path, case_study_num, all_waterfall_list$benefit_waterfall_chart_df))
 }
+
+
+
 
