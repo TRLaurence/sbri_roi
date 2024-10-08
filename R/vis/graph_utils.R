@@ -30,6 +30,8 @@ COLOR_SEQUENTIAL <- c(
   "100Dark Orange" = "#F29330"
 )
 
+FONT_FAMILY <- "serif"
+
 # Helper function to format numbers with units
 format_units <- function(x, units) {
   format_with_commas <- function(num, digits = 0) {
@@ -48,28 +50,28 @@ format_units <- function(x, units) {
 
 
 add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overlap_x_axis = FALSE) {
-  font_family <- "serif"
+
   
   output_file <- paste0(fig_path, case_study, "_", chart_name, ".png")
   
   if (avoid_overlap_x_axis) {
-    x_axis_theme <- element_text(family = font_family, size = 10, angle = 45, hjust = 1)
+    x_axis_theme <- element_text(family = FONT_FAMILY, size = 10, angle = 45, hjust = 1)
   } else { 
-    x_axis_theme <- element_text(family = font_family, size = 10)
+    x_axis_theme <- element_text(family = FONT_FAMILY, size = 10)
   }
   
   p <- p +  
     theme_classic() +
-    theme(plot.title = element_text(family = font_family, face = "bold", size = 14),
-          axis.title.x = element_text(family = font_family, size = 12),
-          axis.title.y = element_text(family = font_family, size = 12),
+    theme(plot.title = element_text(family = FONT_FAMILY, face = "bold", size = 14),
+          axis.title.x = element_text(family = FONT_FAMILY, size = 12),
+          axis.title.y = element_text(family = FONT_FAMILY, size = 12),
           axis.text.x = x_axis_theme,
-          axis.text.y = element_text(family = font_family, size = 10),
+          axis.text.y = element_text(family = FONT_FAMILY, size = 10),
           legend.position = "top",
           legend.justification = "right",
-          legend.title = element_text(family = font_family, size = 10),
-          legend.text = element_text(family = font_family, size = 8),
-          strip.text = element_text(family = font_family, size = 10)  # Facet title font
+          legend.title = element_text(family = FONT_FAMILY, size = 10),
+          legend.text = element_text(family = FONT_FAMILY, size = 8),
+          strip.text = element_text(family = FONT_FAMILY, size = 10)  # Facet title font
     )
   
   

@@ -15,7 +15,7 @@ library(tidyr)
 deterministic_sensitivity <- TRUE
 probabilistic_sensitivity <- TRUE
 
-case_studies_to_rerun <- c(12)
+# case_studies_to_rerun <- c(12)
 
 # Import functional parameters
 source("R/utils/paths.R")
@@ -24,9 +24,10 @@ source("R/utils/paths.R")
 source("R/utils/parameter_vals.R")
 
 # Import case study specific parameters (filled with initial values)
-parameter_vals <- parameter_loader(raw_path, "dummy_parameters.csv", case_studies_to_rerun)
+param_file <-  "parameters_20240927.csv"
+parameter_vals <- parameter_loader(raw_path, param_file)
 
-name_vals <- graph_names_loader(raw_path, "dummy_parameters.csv")
+name_vals <- graph_names_loader(raw_path, param_file)
 
 parameter_scenarios <- set_up_all_sensitivities(parameter_vals,
                                                 deterministic_sensitivity,
@@ -66,19 +67,7 @@ write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv")
 
 overall_graphs(total_benefits_df)
 
-
+case_studies_to_rerun <- total_benefits_df$case_study %>% unique() 
 
 lapply(case_studies_to_rerun , function(x) case_study_specific_graphs(total_benefits_df, granular_benefits_df, x))
-format_to_waterfall(granular_benefits_df, parameter_scenarios, case_study_num=12 )
-
-
-
-
-pop_fancy_categories <- filter(name_vals, case_study_number == 12) %>%
-  select(-case_study_number) 
-
-
-
-
-
 
