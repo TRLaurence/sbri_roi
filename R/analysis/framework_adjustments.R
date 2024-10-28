@@ -28,7 +28,6 @@ estimate_mean_benefit <- function(total_benefit_df) {
 create_benefit_df <- function(benefitting_pop_df, benefit_value, benefit_name, discount_rate, target_cost_year) {
   benefitting_pop_df <- estimate_discounted_benefit_df(benefitting_pop_df, benefit_value, cost_discount_rate, target_cost_year) 
   benefitting_pop_df$benefit_name <- benefit_name
-  
   aggegrated_outputs <- c(estimate_total_benefit(benefitting_pop_df),estimate_mean_benefit(benefitting_pop_df))
   aggegrated_df <- as.data.frame(t(aggegrated_outputs))
   colnames(aggegrated_df) <- c("total", "mean")
@@ -38,9 +37,46 @@ create_benefit_df <- function(benefitting_pop_df, benefit_value, benefit_name, d
   return(return_list)
 }
 
+#'@title apply_optimism_bias
+#'@description Apply an optimism bias to the benefits
+#'@param aggregate_benefits_df A dataframe containing the aggregated benefits
+#'@param optimism_bias The optimism bias to apply
+#'
+#'@examples
+#'      total     mean       benefit_name
+#'   1  100        10        qaly_gains_value
+#'   2 -50         -5        healthcare_cost_savings_value
+#'   3  0           0        socialcare_cost_savings_value
+#'   4  150       150        productivity_gains_value  
+apply_optimism_bias_row <- function(aggregate_benefits_df, optimism_bias) {
+    total_optimism_bias_adjustment <- -sum(aggregate_benefits_df$total) * (1-optimism_bias)
+    mean_optimism_bias_adjustment <- -sum(aggregate_benefits_df$mean) * (1-optimism_bias)
+    new_row_df <- as.data.frame(list(
+      total = total_optimism_bias_adjustment,
+      mean = mean_optimism_bias_adjustment,
+      benefit_name = "optimism_bias_adjustment"
+    ))
+    aggregate_benefits_df <- rbind(aggregate_benefits_df, new_row_df)
+    return(aggregate_benefits_df)
+}
+
+add_optimism_bias_column <- function(granular_benefits_df, optimism_bias) {
+  benefit_cols <- str_subset(names(granular_benefits_df), "gains|savings")
+  total_benefit <- granular_benefits_df %>% 
+    select(all_of(benefit_cols)) %>%
+    rowSums()
+      
+  granular_benefits_df <- granular_benefits_df %>%
+    mutate(optimism_bias_adjustment = - total_benefit * (1-optimism_bias))
+  return(granular_benefits_df)
+}
 
 create_all_benefit_dfs <- function(row_val, benefitting_pop_df, health_discount_rate, cost_discount_rate, monetary_qaly) {
   benefit_cols <- str_subset(names(row_val), "gains_value|savings_value")
+  
+  stopifnot("optimism_bias_benefits_value" %in% names(row_val))
+  
+  optimism_bias <- row_val[["optimism_bias_benefits_value"]]
   
   granular_benefits_df_list <- list()
   aggregate_benefits_df_list <- list()
@@ -56,6 +92,8 @@ create_all_benefit_dfs <- function(row_val, benefitting_pop_df, health_discount_
   granular_benefits_df <- bind_rows(granular_benefits_df_list)
   aggregate_benefits_df <- bind_rows(aggregate_benefits_df_list)
   
+  aggregate_benefits_df <- apply_optimism_bias_row(aggregate_benefits_df, optimism_bias)
+  
   total_benefits_df <- select(aggregate_benefits_df, total, benefit_name) %>%
     mutate(benefit_name = str_remove_all(benefit_name, "_value")) %>%
     pivot_wider(names_from = benefit_name, values_from = total) 
@@ -69,6 +107,8 @@ create_all_benefit_dfs <- function(row_val, benefitting_pop_df, health_discount_
     mutate(benefit_name = str_remove_all(benefit_name, "_value")) %>%
     pivot_wider(id_cols = all_of(cols_to_not_pivot), names_from = "benefit_name", values_from = "total_discounted_benefit") %>%
     mutate(year = as.numeric(year))
+  
+  granular_benefits_df <- add_optimism_bias_column(granular_benefits_df, optimism_bias)
   
   return_list <- list("total_benefits_df" = total_benefits_df, 
                       "mean_benefits_df" = mean_benefits_df, 

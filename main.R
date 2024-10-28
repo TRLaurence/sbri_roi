@@ -34,6 +34,7 @@ parameter_scenarios <- set_up_all_sensitivities(parameter_vals,
                                                 probabilistic_sensitivity,
                                                 number_of_samples)
 
+
 # TODO coverage and discounting
 inflation_df <- inflation_data_loader()
 

@@ -53,7 +53,8 @@ distribution_mapping <- function(parameter_val) {
     "healthcare_cost_savings" = "normal", # This cost can be positive or negative because it's net
     "productivity_gains" = "normal", # This cost can be positive or negative because it's net
     "socialcare_cost_savings" = "normal", # This cost can be positive or negative because it's net
-    "research_costs" = "gamma" # This cost is always positive
+    "research_costs" = "gamma", # This cost is always positive
+    "optimism_bias_benefits" = "uniform"
   )
 
   #Check if the parameter is in the mapping, return error if not found
@@ -80,9 +81,9 @@ beta_params <- function(mean_value, std_dev) {
 }
 
 # Main function to generate random samples based on the distribution
-generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta")) {
+generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta", "uniform")) {
   z_value <- 1.96  # for 95% confidence interval
-  ci_width <- upper_bound - lower_bound
+  ci_width <- abs(upper_bound - lower_bound)
   
   if (ci_width <= 0) {
     return(rep(mean_value, n))
@@ -116,6 +117,16 @@ generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distr
     params <- beta_params(mean_value, std_dev)
     samples <- rbeta(n, shape1 = params$alpha, shape2 = params$beta)
     
+  } else if (distribution == "uniform") {
+    # Uniform distribution
+    if (lower_bound > upper_bound) {
+      lower_val_temp <- lower_bound
+      lower_bound <- upper_bound
+      upper_bound <- lower_val_temp
+    }
+
+    samples <- runif(n, min = lower_bound, max = upper_bound)
+    
   } else {
     stop("Unsupported distribution type.")
   }
@@ -128,11 +139,11 @@ create_matching_probabilistic_df <- function(case_study_vals, parameters_to_chan
   for (j in 1:length(parameters_to_change)) {
     param <- parameters_to_change[j]
     var_name <- str_remove(param, "_value")
+
     distribution <- distribution_mapping(var_name)
     mean_value <- case_study_vals[[param]]
     lower_bound <- case_study_vals[[paste0(var_name, "_lower")]]
     upper_bound <- case_study_vals[[paste0(var_name, "_upper")]]
-    
     samples <- generate_distribution(mean_value, lower_bound, upper_bound, number_of_samples, distribution)
     data_frame_of_vals[[param]] <- samples
   }
@@ -148,6 +159,9 @@ create_matching_probabilistic_df <- function(case_study_vals, parameters_to_chan
 
 set_up_probabilistic <-  function(parameter_vals, number_of_samples) {
   parameters_to_change <- names(parameter_vals)[str_detect(names(parameter_vals), "_value")]
+  print("parameters_to_change")
+  print(parameters_to_change)
+  
   case_studies <- unique(parameter_vals$case_study_number)
   
   list_of_dfs <- list()
