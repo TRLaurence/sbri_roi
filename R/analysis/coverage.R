@@ -7,7 +7,7 @@ sigmoid <- function(x) {
 extrapolate_sigmoid <- function(init_coverage, final_coverage, years) {
   
   # Time points (years)
-  time <- seq(0, years, by = 1)
+  time <- seq(1, years, by = 1)
   # Parameters for the sigmoid function
   midpoint <- years / 2  # Midpoint of the transition
   growth_rate <- 10 / years  # Growth rate for the transition curve (adjustable)
@@ -17,7 +17,7 @@ extrapolate_sigmoid <- function(init_coverage, final_coverage, years) {
   # Rescale coverage to fit between init_coverage and final_coverage
   coverage_vec <- init_coverage + (final_coverage - init_coverage) * norm_coverage
   coverage_vec[1] <- init_coverage
-  coverage_vec[years+1] <- final_coverage
+  coverage_vec[years] <- final_coverage
   # Return a data frame with time and coverage
   data.frame(year = time, coverage = coverage_vec)
 }
@@ -34,7 +34,7 @@ estimate_coverage <- function(init_coverage, final_coverage, year_start_coverage
     coverage_data <- rbind(initial_coverage_data, remaining_coverage_data)
   } else {
     coverage_data <- extrapolate_sigmoid(init_coverage, final_coverage, num_years_sigmoid)
-    coverage_data <- coverage_data[0:n_years+1, ]
+    coverage_data <- coverage_data[1:n_years, ]
   } 
   
   coverage_data$year <- coverage_data$year + year_start_coverage

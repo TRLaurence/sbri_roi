@@ -28,13 +28,14 @@ estimate_mean_benefit <- function(total_benefit_df) {
 create_benefit_df <- function(benefitting_pop_df, benefit_value, benefit_name, discount_rate, target_cost_year) {
   benefitting_pop_df <- estimate_discounted_benefit_df(benefitting_pop_df, benefit_value, cost_discount_rate, target_cost_year) 
   benefitting_pop_df$benefit_name <- benefit_name
-  aggegrated_outputs <- c(estimate_total_benefit(benefitting_pop_df),estimate_mean_benefit(benefitting_pop_df))
-  aggegrated_df <- as.data.frame(t(aggegrated_outputs))
-  colnames(aggegrated_df) <- c("total", "mean")
-  aggegrated_df$benefit_name <- benefit_name
-  return_list <- list("aggregated_df" = aggegrated_df, 
-                      "benefitting_pop_df" = benefitting_pop_df)
-  return(return_list)
+  # aggegrated_outputs <- c(estimate_total_benefit(benefitting_pop_df),estimate_mean_benefit(benefitting_pop_df))
+  # aggegrated_df <- as.data.frame(t(aggegrated_outputs))
+  # colnames(aggegrated_df) <- c("total", "mean")
+  # aggegrated_df$benefit_name <- benefit_name
+  # return_list <- list("aggregated_df" = aggegrated_df, 
+  #                     "benefitting_pop_df" = benefitting_pop_df)
+  # return(return_list)
+  return(benefitting_pop_df)
 }
 
 #'@title apply_optimism_bias
@@ -79,28 +80,20 @@ create_all_benefit_dfs <- function(row_val, benefitting_pop_df, health_discount_
   optimism_bias <- row_val[["optimism_bias_benefits_value"]]
   
   granular_benefits_df_list <- list()
-  aggregate_benefits_df_list <- list()
+  # aggregate_benefits_df_list <- list()
   for (benefit in benefit_cols) {
     benefit_value <- row_val[[benefit]]
     benefit_name <- benefit
     discount_rate_to_use <- ifelse(grepl("qaly", benefit), health_discount_rate, cost_discount_rate)
     benefit_value <- ifelse(grepl("qaly", benefit), benefit_value * monetary_qaly, benefit_value)
-    benefit_list <- create_benefit_df(benefitting_pop_df, benefit_value, benefit_name, cost_discount_rate, target_cost_year)
-    granular_benefits_df_list[[benefit]] <- benefit_list[["benefitting_pop_df"]]
-    aggregate_benefits_df_list[[benefit]] <- benefit_list[["aggregated_df"]]
+    # benefit_list <- create_benefit_df(benefitting_pop_df, benefit_value, benefit_name, cost_discount_rate, target_cost_year)
+    # granular_benefits_df_list[[benefit]] <- benefit_list[["benefitting_pop_df"]]
+    granular_benefits_df_list[[benefit]] <- create_benefit_df(benefitting_pop_df, benefit_value, benefit_name, cost_discount_rate, target_cost_year)
+    # aggregate_benefits_df_list[[benefit]] <- benefit_list[["aggregated_df"]]
   }
   granular_benefits_df <- bind_rows(granular_benefits_df_list)
-  aggregate_benefits_df <- bind_rows(aggregate_benefits_df_list)
+  # aggregate_benefits_df <- bind_rows(aggregate_benefits_df_list)
   
-  aggregate_benefits_df <- apply_optimism_bias_row(aggregate_benefits_df, optimism_bias)
-  
-  total_benefits_df <- select(aggregate_benefits_df, total, benefit_name) %>%
-    mutate(benefit_name = str_remove_all(benefit_name, "_value")) %>%
-    pivot_wider(names_from = benefit_name, values_from = total) 
-  
-  mean_benefits_df <- select(aggregate_benefits_df, mean, benefit_name) %>%
-    mutate(benefit_name = str_remove_all(benefit_name, "_value")) %>%
-    pivot_wider(names_from = benefit_name, values_from = mean)
   
   cols_to_not_pivot <- names(granular_benefits_df)[!str_detect(names(granular_benefits_df), "benefit_name|total_discounted_benefit")]
   granular_benefits_df <- granular_benefits_df %>%
@@ -110,9 +103,18 @@ create_all_benefit_dfs <- function(row_val, benefitting_pop_df, health_discount_
   
   granular_benefits_df <- add_optimism_bias_column(granular_benefits_df, optimism_bias)
   
-  return_list <- list("total_benefits_df" = total_benefits_df, 
-                      "mean_benefits_df" = mean_benefits_df, 
-                      "granular_benefits_df" = granular_benefits_df)  
+  rel_cols <- str_subset(names(granular_benefits_df), "_pop$|_savings$|_gains$|^optimism_bias")
+  total_benefits_df <- granular_benefits_df %>%
+    select(all_of(rel_cols)) %>%
+    summarise_all(sum)
+  
+  mean_benefits_df <- granular_benefits_df %>%
+    select(all_of(rel_cols)) %>%
+    summarise_all(mean)
+
+  return_list <- list("total_benefits_df" = total_benefits_df,
+                      "mean_benefits_df" = mean_benefits_df,
+                      "granular_benefits_df" = granular_benefits_df)
   return(return_list)
 }
 

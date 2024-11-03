@@ -15,8 +15,6 @@ library(tidyr)
 deterministic_sensitivity <- TRUE
 probabilistic_sensitivity <- TRUE
 
-# case_studies_to_rerun <- c(12)
-
 # Import functional parameters
 source("R/utils/paths.R")
 
@@ -24,7 +22,7 @@ source("R/utils/paths.R")
 source("R/utils/parameter_vals.R")
 
 # Import case study specific parameters (filled with initial values)
-param_file <-  "parameters_20240927.csv"
+param_file <-  "parameters_20241103.csv"
 parameter_vals <- parameter_loader(raw_path, param_file)
 
 name_vals <- graph_names_loader(raw_path, param_file)
@@ -57,7 +55,7 @@ mean_benefits_df <- all_outputs[["mean_benefits_df"]]
 granular_benefits_df <- all_outputs[["granular_benefits_df"]]
 
 total_benefits_df <- total_benefits_df %>%
-  mutate(total_benefits = qaly_gains + healthcare_cost_savings + socialcare_cost_savings + productivity_gains) %>%
+  mutate(total_benefits = qaly_gains + healthcare_cost_savings + socialcare_cost_savings + productivity_gains + optimism_bias_adjustment) %>%
   mutate(roi = return_on_investment(total_benefits, research_costs))
 
 

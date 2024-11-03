@@ -18,22 +18,59 @@ library(scales)
 #   
 #   return(p)
 # }
+
+estimate_max_y <- function(probabilistic_df, bins = 20) {
+  # Generate the histogram counts with probabilities
+  hist_data <- hist(probabilistic_df$roi, breaks = bins, plot = FALSE)
+  
+  # Convert counts to probabilities
+  probabilities <- hist_data$counts / sum(hist_data$counts)
+  
+  # Get the maximum probability for setting max_y
+  max_y <- max(probabilities)
+  
+  return(max_y)
+}
+
 ##### FUNCTIONS TO DRAW GRAPHS ######
 graph_probability_histogram <- function(fig_path, case_study_num, probabilistic_df) {
-  dev.off()
   chart_name <- "prob_histogram"
+  
+  # Estimate max_y based on the data
+  max_y <- estimate_max_y(probabilistic_df) + 0.05  # Adding a small buffer for visual clarity
+  
+  upper_val <- probabilistic_df$upper[1]
+  reference_val <- probabilistic_df$reference[1]
+  lower_val <- probabilistic_df$lower[1]
+  
+  # 1 DP
+  upper_lab <- paste("Upper:", format(round(upper_val, 1), nsmall = 1))
+  ref_lab <- paste("Ref:", format(round(reference_val, 1), nsmall = 1))
+  lower_lab <- paste("Lower:", format(round(lower_val, 1), nsmall = 1))
+  
+  # Define a small buffer for text positioning on the x-axis
+  x_buffer <- 0.02 * (max(probabilistic_df$roi) - min(probabilistic_df$roi))
+  
   p <- ggplot(probabilistic_df, aes(x = roi)) +
     geom_histogram(aes(y = after_stat(count)/sum(after_stat(count))), bins = 20, fill = COLOR_CATEGORICAL['Dark Blue'], color = "black") +
-    # Add vertical line for reference
+    
+    # Vertical lines with labels to the right
     geom_vline(aes(xintercept = reference), color = COLOR_CATEGORICAL['Red'], linetype = "dashed") +
+    geom_text(aes(x = reference + x_buffer, y = max_y, label = ref_lab), color = COLOR_CATEGORICAL['Dark Blue'], vjust = -0.5, hjust = 0) +
+    
+    geom_vline(aes(xintercept = upper), color = COLOR_CATEGORICAL['Orange'], linetype = "dashed") +
+    geom_text(aes(x = upper + x_buffer, y = max_y, label = upper_lab), color = COLOR_CATEGORICAL['Dark Blue'], vjust = -0.5, hjust = 0) +
+    
+    geom_vline(aes(xintercept = lower), color = COLOR_CATEGORICAL['Orange'], linetype = "dashed") +
+    geom_text(aes(x = lower + x_buffer, y = max_y, label = lower_lab), color = COLOR_CATEGORICAL['Dark Blue'], vjust = -0.5, hjust = 0) +
+    
     labs(title = "Probability Histogram of ROIs", x = "ROI", y = "Probability")
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
   return(p)
 }
-
 graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", summary_ci_df) {
-  dev.off()
+  # dev.off()
   chart_name <- "roi_summary_ci"
   # Example plot
   p <- ggplot(summary_ci_df, aes(x = factor(case_study), y = reference), color = COLOR_CATEGORICAL['Dark Blue']) +
@@ -51,7 +88,7 @@ graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", sum
 }
 
 graph_boxplot_probability_comparison <- function(fig_path, case_study_num = "comparison", comparison_probability_df) {
-  dev.off()
+  # dev.off()
   chart_name <- "comparison_boxplot"
   p <- ggplot(comparison_probability_df, aes(x = case_study, y = roi, group = case_study)) +
     geom_boxplot(color = COLOR_CATEGORICAL['Dark Blue']) +
@@ -63,12 +100,14 @@ graph_boxplot_probability_comparison <- function(fig_path, case_study_num = "com
 }
 
 graph_uptake_projection <- function(fig_path, case_study_num, uptake_df) {
-  dev.off()
+  # dev.off()
   chart_name <- "uptake_projection"
+  
   p <- ggplot(uptake_df, aes(x = year, y = coverage, group = scenario)) +
     geom_line(alpha = 0.1, color = COLOR_CATEGORICAL['Dark Blue']) +
     labs(title = "Uptake Projection", x = "Year", y = "Uptake") +
-    scale_y_continuous(labels = percent_format())  # Format the y-axis as a percentage
+    scale_y_continuous(labels = percent_format()) +  # Format y-axis as a percentage
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 10))  
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
   return(p)
@@ -82,14 +121,15 @@ graph_uptake_confidence_interval <- function(fig_path, case_study_num, uptake_ci
     # Add a line just for reference_case
     geom_line(color = COLOR_SEQUENTIAL[['100Dark Blue']]) +
     labs(title = "Uptake Confidence Interval", x = "Year", y = "Uptake") +
-    scale_y_continuous(labels = percent_format())  # Format the y-axis as a percentage
+    scale_y_continuous(labels = percent_format())  +  # Format y-axis as a percentage
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) 
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
   return(p)
 }
 
 graph_tornado_determ <- function(fig_path, case_study_num, graph_data) {
-  dev.off()
+  # dev.off()
   chart_name <- "tornado"
 
   base_value <- graph_data$base[1]  # Assuming a single base value for the chart
@@ -180,7 +220,7 @@ waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FA
 }
 
 graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df, name_vals) {
-  dev.off()
+  # dev.off()
   chart_name <- "pop_waterfall"
   
   p <- waterfall_chart(pop_waterfall_chart_df)
@@ -196,7 +236,7 @@ graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df
 
 
 graph_benefit_waterfall <- function(fig_path, case_study_num, benefit_waterfall_chart_df) {
-  dev.off()
+  # dev.off()
   chart_name <- "benefit_waterfall"
   
   p <- waterfall_chart(benefit_waterfall_chart_df)
@@ -212,7 +252,7 @@ graph_benefit_waterfall <- function(fig_path, case_study_num, benefit_waterfall_
 
 
 graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_roi_chart_df) {
-  dev.off()
+  # dev.off()
   chart_name <- "stacked_benefits_over_costs"
   
   # Define specific colors for each benefit type and research costs
@@ -221,7 +261,8 @@ graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_
     "QALY gains" = COLOR_CATEGORICAL[["Dark Blue"]],        
     "Healthcare cost savings" = COLOR_CATEGORICAL[["Purple"]],  
     "Social care cost savings" = COLOR_CATEGORICAL[["Teal"]],  
-    "Productivity gains" = COLOR_CATEGORICAL[["Green"]]       
+    "Productivity gains" = COLOR_CATEGORICAL[["Green"]],
+    "Optimism bias adjustment" = COLOR_CATEGORICAL[["Orange"]]
   )
   
   
@@ -260,11 +301,19 @@ format_total_to_prob <- function(total_benefits_df, case_study_num) {
     filter(str_detect(scenario, "reference")) %>%
     pull(roi)
   
+  upper_and_lower_ci <- total_benefits_df %>%
+    filter(case_study == case_study_num) %>%
+    filter(str_detect(scenario, "probabilistic")) %>%
+    summarise(upper = quantile(roi, 0.95), 
+              lower = quantile(roi, 0.05))
+  
   probabilistic_df <- total_benefits_df %>%
     filter(case_study == case_study_num) %>%
     filter(str_detect(scenario, "prob")) %>%
     mutate(reference = reference_val) %>%
-    select(case_study, scenario, roi, reference)
+    mutate(upper = upper_and_lower_ci$upper) %>% 
+    mutate(lower = upper_and_lower_ci$lower) %>%
+    select(case_study, scenario, roi, reference, upper, lower)
   return(probabilistic_df)
 }
 
@@ -350,8 +399,8 @@ format_granular_to_coverage_df <- function(granular_benefits_df, case_study_num)
     filter(str_detect(scenario, "prob|reference")) %>%
     mutate(reference = ifelse(str_detect(scenario, "reference"), "reference", "probabilistic"))%>%
     filter(case_study == case_study_num) %>%
-    select(year, scenario, reference, coverage) %>%
-    return(coverage_df)
+    select(year, scenario, reference, coverage) 
+  return(coverage_df)
 }
 
 format_uptake_to_confidence_interval <- function(coverage_df, confidence = 0.95) {
@@ -367,7 +416,8 @@ format_uptake_to_confidence_interval <- function(coverage_df, confidence = 0.95)
     group_by(year) %>%
     summarise(lower = quantile(coverage, probs = uncertainty/2), 
               upper = quantile(coverage, probs = (1-uncertainty/2))) 
-  uptake_ci_df <- left_join(uptake_ci_df, reference_vals, by = "year")
+  uptake_ci_df <- left_join(uptake_ci_df, reference_vals, by = "year") 
+  
   return(uptake_ci_df)
 }
 
@@ -428,7 +478,7 @@ format_df_for_waterfall <- function(data, fancy_categories = NULL) {
   return(data)
 }
 
-format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_study_num, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains")) {
+format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_study_num, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "optimism_bias_adjustment")) {
   stopifnot(all(c(expected_bridge_cols %in% colnames(granular_benefits_df))))
   
   reference_only <- granular_benefits_df %>%
@@ -468,7 +518,7 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
   benefitting_pop <- all_waterfall_df$benefitting_pop
   
   benefit_waterfall_chart_df <- all_waterfall_df %>%
-    select(all_of(c("qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains"))) %>%
+    select(all_of(c("qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "optimism_bias_adjustment"))) %>%
     t() %>%
     as.data.frame() %>%
     rownames_to_column("category") %>%
@@ -480,6 +530,7 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
                                 "healthcare_cost_savings" = "Healthcare cost savings", 
                                 "socialcare_cost_savings" = "Social care cost savings", 
                                 "productivity_gains" = "Productivity gains",
+                                "optimism_bias_adjustment" = "Optimism bias adjustment",
                                 "research_costs" = "Research costs",
                                 "total" = "Total benefits")
   
@@ -487,7 +538,7 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
   
     
   stacked_roi_chart_df <- all_waterfall_df %>%
-    select(all_of(c("research_costs", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains"))) %>%
+    select(all_of(c("research_costs", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains","optimism_bias_adjustment"))) %>%
     t() %>%
     as.data.frame() %>%
     rownames_to_column("category") %>%
