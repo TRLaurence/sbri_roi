@@ -53,8 +53,9 @@ distribution_mapping <- function(parameter_val) {
     "healthcare_cost_savings" = "normal", # This cost can be positive or negative because it's net
     "productivity_gains" = "normal", # This cost can be positive or negative because it's net
     "socialcare_cost_savings" = "normal", # This cost can be positive or negative because it's net
-    "research_costs" = "gamma", # This cost is always positive
-    "optimism_bias_benefits" = "uniform"
+    "research_funding" = "gamma", # This cost is always positive
+    "optimism_bias_benefits" = "uniform",
+    "applied_adjustment" = "normal"
   )
 
   #Check if the parameter is in the mapping, return error if not found
@@ -80,8 +81,10 @@ beta_params <- function(mean_value, std_dev) {
   return(list(alpha = alpha, beta = beta))
 }
 
+
 # Main function to generate random samples based on the distribution
 generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta", "uniform")) {
+  set.seed(1)
   z_value <- 1.96  # for 95% confidence interval
   ci_width <- abs(upper_bound - lower_bound)
   

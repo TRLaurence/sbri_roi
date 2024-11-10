@@ -37,7 +37,7 @@ graph_probability_histogram <- function(fig_path, case_study_num, probabilistic_
   chart_name <- "prob_histogram"
   
   # Estimate max_y based on the data
-  max_y <- estimate_max_y(probabilistic_df) + 0.05  # Adding a small buffer for visual clarity
+  max_y <- estimate_max_y(probabilistic_df) + 0.1  # Adding a small buffer for visual clarity
   
   upper_val <- probabilistic_df$upper[1]
   reference_val <- probabilistic_df$reference[1]
@@ -56,20 +56,46 @@ graph_probability_histogram <- function(fig_path, case_study_num, probabilistic_
     
     # Vertical lines with labels to the right
     geom_vline(aes(xintercept = reference), color = COLOR_CATEGORICAL['Red'], linetype = "dashed") +
-    geom_text(aes(x = reference + x_buffer, y = max_y, label = ref_lab), color = COLOR_CATEGORICAL['Dark Blue'], vjust = -0.5, hjust = 0) +
+    geom_text(aes(x = reference + x_buffer, y = max_y, label = ref_lab), 
+              color = COLOR_CATEGORICAL['Dark Blue'], 
+              # vjust = -0.5,
+              hjust = 0,
+              family = FONT_FAMILY, 
+              size = 3) +
     
     geom_vline(aes(xintercept = upper), color = COLOR_CATEGORICAL['Orange'], linetype = "dashed") +
-    geom_text(aes(x = upper + x_buffer, y = max_y, label = upper_lab), color = COLOR_CATEGORICAL['Dark Blue'], vjust = -0.5, hjust = 0) +
+    geom_text(aes(x = upper + x_buffer, y = max_y, label = upper_lab), 
+              color = COLOR_CATEGORICAL['Dark Blue'], 
+              # vjust = -0.5,
+              hjust = 0,
+              family = FONT_FAMILY, 
+              size = 3) +
     
     geom_vline(aes(xintercept = lower), color = COLOR_CATEGORICAL['Orange'], linetype = "dashed") +
-    geom_text(aes(x = lower + x_buffer, y = max_y, label = lower_lab), color = COLOR_CATEGORICAL['Dark Blue'], vjust = -0.5, hjust = 0) +
+    geom_text(aes(x = lower + x_buffer, y = max_y, label = lower_lab), 
+              color = COLOR_CATEGORICAL['Dark Blue'], 
+              # vjust = -0.5, 
+              hjust = 0,
+              family = FONT_FAMILY, 
+              size = 3) +
     
-    labs(title = "Probability Histogram of ROIs", x = "ROI", y = "Probability")
+    labs(title = "", x = "ROI", y = "Probability")
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
   return(p)
 }
-graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", summary_ci_df) {
+
+log_tranform_graph <- function(p, log_transform = TRUE) {
+  if (log_transform) {
+    p <- p + scale_y_log10()
+  } else {
+    p <- p + scale_y_continuous()
+  }
+  
+  return(p)
+}
+
+graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", summary_ci_df, log_transform = FALSE) {
   # dev.off()
   chart_name <- "roi_summary_ci"
   # Example plot
@@ -77,10 +103,16 @@ graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", sum
     geom_point(size = 3) +  # Points for ROI
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +  # Error bars
     labs(
-      title = "ROI by Case Study with Confidence Intervals",
+      title = "",
       x = "Case Study",
       y = "ROI"
-    )  
+    )
+    
+  p <- log_tranform_graph(p, log_transform) 
+  
+  if(log_transform) {
+    chart_name <- paste(chart_name, "_log", sep = "")
+  } 
   
   p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
   
@@ -105,7 +137,7 @@ graph_uptake_projection <- function(fig_path, case_study_num, uptake_df) {
   
   p <- ggplot(uptake_df, aes(x = year, y = coverage, group = scenario)) +
     geom_line(alpha = 0.1, color = COLOR_CATEGORICAL['Dark Blue']) +
-    labs(title = "Uptake Projection", x = "Year", y = "Uptake") +
+    labs(title = "", x = "Year", y = "Uptake") +
     scale_y_continuous(labels = percent_format()) +  # Format y-axis as a percentage
     scale_x_continuous(breaks = scales::pretty_breaks(n = 10))  
   
@@ -120,7 +152,7 @@ graph_uptake_confidence_interval <- function(fig_path, case_study_num, uptake_ci
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = COLOR_SEQUENTIAL[['80Dark Blue']], color = "white") +
     # Add a line just for reference_case
     geom_line(color = COLOR_SEQUENTIAL[['100Dark Blue']]) +
-    labs(title = "Uptake Confidence Interval", x = "Year", y = "Uptake") +
+    labs(title = "", x = "Year", y = "Uptake") +
     scale_y_continuous(labels = percent_format())  +  # Format y-axis as a percentage
     scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) 
   
@@ -207,10 +239,10 @@ waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FA
     
     # Explicitly specify the data in geom_text
     if (log_y) {
-      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3)  + 
+      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3, family = FONT_FAMILY)  + 
         scale_color_manual(values = c("#000000", "#FFFFFF"))
     } else {
-      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3)   + 
+      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3, family = FONT_FAMILY)   + 
         scale_color_manual(values = c("#000000", "#FFFFFF"))
     }
   }
@@ -229,7 +261,7 @@ graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df
     labs(x = "Adjustment",
          y = "Modelled population (people)")
     
-  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
+  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, legend_pos = "none")
   
   return(p)
 }
@@ -245,7 +277,7 @@ graph_benefit_waterfall <- function(fig_path, case_study_num, benefit_waterfall_
     labs(x = "Benefit type",
          y = "Net benefit (GBP)")
   
-  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
+  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, legend_pos = "none")
   
   return(p)
 }
@@ -284,7 +316,7 @@ graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_
     geom_bar(stat = "identity", position = "stack", width = 0.6) +
     # Add text at the top with the ROI
     annotate("text", x = 1.5, y = cost_max , label = paste("ROI: ", roi_val), vjust = 1.5, hjust = 0.5, size = 4, family = FONT_FAMILY) +
-    labs(title = "Research Costs vs. Stacked Benefits", x = "", y = "Value") +
+    labs(title = "", x = "", y = "Value") +
     scale_y_continuous(labels = label_comma()) +
     scale_fill_manual(values = colors) 
   
@@ -368,14 +400,16 @@ format_to_ci <- function(total_benefits_df, confidence = 0.95) {
   reference_df <- total_benefits_df %>%
     group_by(case_study) %>%
     filter(str_detect(scenario, "reference")) %>%
-    select(case_study, reference = roi) 
+    select(case_study, reference = roi) %>%
+    ungroup()
   
   summary_ci_df <- total_benefits_df %>%
     group_by(case_study) %>%
     filter(str_detect(scenario, "probabilistic")) %>%
     select(case_study, roi) %>%
     summarise(lower = quantile(roi, probs = uncertainty/2), 
-              upper = quantile(roi, probs = 1 - uncertainty/2))
+              upper = quantile(roi, probs = 1 - uncertainty/2)) %>%
+    ungroup()
   
   summary_ci_df <- left_join(reference_df, summary_ci_df, by = "case_study")
   
@@ -478,7 +512,7 @@ format_df_for_waterfall <- function(data, fancy_categories = NULL) {
   return(data)
 }
 
-format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_study_num, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "optimism_bias_adjustment")) {
+format_to_waterfall <- function(granular_benefits_df, reference_research_costs_only, case_study_num, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "optimism_bias_adjustment")) {
   stopifnot(all(c(expected_bridge_cols %in% colnames(granular_benefits_df))))
   
   reference_only <- granular_benefits_df %>%
@@ -488,10 +522,9 @@ format_to_waterfall <- function(granular_benefits_df, parameter_scenarios, case_
   years_benefits_assumed_to_accrue <- c("min_year" = min(granular_benefits_df$year), 
                                         "max_year" = max(granular_benefits_df$year))
   
-  research_costs_val <- parameter_scenarios %>%
-    filter(scenario == "reference") %>%
-    filter(case_study_number == case_study_num ) %>%
-    select(research_costs_value) %>%
+  research_costs_val <- reference_research_costs_only %>%
+    filter(case_study == case_study_num ) %>%
+    select(research_costs) %>%
     pull()
   
   all_waterfall_df <- reference_only %>%
@@ -562,24 +595,25 @@ overall_graphs <- function(total_benefits_df) {
   comparison_probability_df <- format_total_to_comparison_prob(total_benefits_df)
   print(graph_boxplot_probability_comparison(fig_path, case_study_num = "comparison", comparison_probability_df))
   
-  summary_ci_df <- format_to_ci(total_benefits_df, confidence = 0.95)
-  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df))
+  summary_ci_df <- format_to_ci(total_benefits_df, confidence = 0.90)
+  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, log_transform = TRUE))
+  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, log_transform = FALSE))
   
 }
 
-case_study_specific_graphs <- function(total_benefits_df, granular_benefits_df, case_study_num= 99999) {
-  probabilistic_df <- format_total_to_prob(total_benefits_df, case_study_num) 
+case_study_specific_graphs <- function(total_benefits_df, reference_research_costs_only, granular_benefits_df, case_study_num= 99999) {
+  probabilistic_df <- format_total_to_prob(total_benefits_df, case_study_num)
   print(graph_probability_histogram(fig_path, case_study_num, probabilistic_df))
-  
+
   determ_df <- format_total_to_determ(total_benefits_df, case_study_num)
   print(graph_tornado_determ(fig_path,  case_study_num, determ_df))
-  
+
   coverage_df <- format_granular_to_coverage_df(granular_benefits_df, case_study_num)
-  uptake_ci_df <- format_uptake_to_confidence_interval(coverage_df, confidence = 0.95)
+  uptake_ci_df <- format_uptake_to_confidence_interval(coverage_df, confidence = 0.90)
   print(graph_uptake_projection(fig_path, case_study_num, coverage_df))
   print(graph_uptake_confidence_interval(fig_path, case_study_num, uptake_ci_df))
-  
-  all_waterfall_list <- format_to_waterfall(granular_benefits_df, parameter_scenarios, case_study_num)
+
+  all_waterfall_list <- format_to_waterfall(granular_benefits_df, reference_research_costs_only, case_study_num)
   print(graph_stacked_benefits_over_costs(fig_path, case_study_num, all_waterfall_list$stacked_roi_chart_df))
   print(graph_pop_waterfall(fig_path, case_study_num, all_waterfall_list$pop_waterfall_chart_df))
   print(graph_benefit_waterfall(fig_path, case_study_num, all_waterfall_list$benefit_waterfall_chart_df))

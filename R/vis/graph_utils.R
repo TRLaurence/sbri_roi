@@ -49,7 +49,7 @@ format_units <- function(x, units) {
 
 
 
-add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overlap_x_axis = FALSE) {
+add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overlap_x_axis = FALSE, legend_pos = "top") {
 
   
   output_file <- paste0(fig_path, case_study, "_", chart_name, ".png")
@@ -67,7 +67,7 @@ add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overla
           axis.title.y = element_text(family = FONT_FAMILY, size = 12),
           axis.text.x = x_axis_theme,
           axis.text.y = element_text(family = FONT_FAMILY, size = 10),
-          legend.position = "top",
+          legend.position = legend_pos,
           legend.justification = "right",
           legend.title = element_text(family = FONT_FAMILY, size = 10),
           legend.text = element_text(family = FONT_FAMILY, size = 8),

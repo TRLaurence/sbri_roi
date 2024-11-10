@@ -27,6 +27,10 @@ apply_inflation <- function(val, inflation_df, cost_year, target_year) {
   return(inflated_val)
 }
 
+apply_discount_basic <- function(val, discount_rate, cost_year, target_year) {
+  return(val / (1 + discount_rate)^(cost_year - target_year))
+}
+
 standardise_df_to_target <- function(parameter_scenarios, inflation_df, value_year_mapping, target_cost_year, discount_rate) {
   inflation_adjust_row <- function(row_val, inflation_df, value_year_mapping, target_cost_year) {
     for (i in 1:length(value_year_mapping)) {
