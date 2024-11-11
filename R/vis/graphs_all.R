@@ -95,11 +95,13 @@ log_tranform_graph <- function(p, log_transform = TRUE) {
   return(p)
 }
 
-graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", summary_ci_df, log_transform = FALSE) {
+graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping, log_transform = FALSE) {
   # dev.off()
   chart_name <- "roi_summary_ci"
   # Example plot
-  p <- ggplot(summary_ci_df, aes(x = factor(case_study), y = reference), color = COLOR_CATEGORICAL['Dark Blue']) +
+  summary_ci_df$case_study <- factor(summary_ci_df$case_study, levels = case_study_mapping)
+  
+  p <- ggplot(summary_ci_df, aes(x = case_study, y = reference), color = COLOR_CATEGORICAL['Dark Blue']) +
     geom_point(size = 3) +  # Points for ROI
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +  # Error bars
     labs(
@@ -198,6 +200,8 @@ graph_tornado_determ <- function(fig_path, case_study_num, graph_data) {
 }
 
 waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FALSE) {
+  print(data)
+  
   # Custom y-axis label formatter
   y_formatter <- function(x) {
     format_units(x, units)
@@ -237,13 +241,34 @@ waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FA
     data$mid_y <- (data$start + data$end) / 2
     data$formatted_value <- format_units(data$value, units)
     
+    
+    scale_color_vals <-c("#000000", "#FFFFFF")
+    unique_vals <- data$text_color %>% unique()
+    # Reverse the order of the colors so that the negative values are red
+    
+    scale_color_vals <- scale_color_vals[scale_color_vals %in% unique_vals] 
+    
+    stopifnot(length(scale_color_vals) > 0)
+    
     # Explicitly specify the data in geom_text
     if (log_y) {
-      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3, family = FONT_FAMILY)  + 
-        scale_color_manual(values = c("#000000", "#FFFFFF"))
+      p <- p + geom_text(data = data, 
+                         aes(x = mid_x, 
+                             y = mid_y + text_offset, 
+                             label = formatted_value, 
+                             color = text_color), 
+                         size = 3, 
+                         family = FONT_FAMILY)   + 
+        scale_color_manual(values = scale_color_vals)
     } else {
-      p <- p + geom_text(data = data, aes(x = mid_x, y = mid_y + text_offset, label = formatted_value, color = text_color), size = 3, family = FONT_FAMILY)   + 
-        scale_color_manual(values = c("#000000", "#FFFFFF"))
+      p <- p + geom_text(data = data, 
+                         aes(x = mid_x, 
+                             y = mid_y + text_offset, 
+                             label = formatted_value, 
+                             color = text_color), 
+                         size = 3, 
+                         family = FONT_FAMILY)  + 
+        scale_color_manual(values =scale_color_vals)
     }
   }
   
@@ -394,7 +419,7 @@ format_total_to_determ <- function(total_benefits_df, case_study_num) {
   return(determ_df)
 }
 
-format_to_ci <- function(total_benefits_df, confidence = 0.95) {
+format_to_ci <- function(total_benefits_df, case_study_mapping, confidence = 0.95) {
   uncertainty <- 1-confidence
   
   reference_df <- total_benefits_df %>%
@@ -412,6 +437,11 @@ format_to_ci <- function(total_benefits_df, confidence = 0.95) {
     ungroup()
   
   summary_ci_df <- left_join(reference_df, summary_ci_df, by = "case_study")
+  
+  summary_ci_df$case_study <- as.character(summary_ci_df$case_study)
+  
+
+  summary_ci_df$case_study <- case_study_mapping[summary_ci_df$case_study]
   
   return(summary_ci_df)
 }
@@ -591,13 +621,18 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
 }
 
 ##### FUNCTIONS TO PRODUCE ALL THE GRAPHS######
-overall_graphs <- function(total_benefits_df) {
+overall_graphs <- function(total_benefits_df, case_study_mapping) {
+  
+  case_study_mapping_wrapped <- str_wrap(case_study_mapping, width = 15)
+  names(case_study_mapping_wrapped) <- names(case_study_mapping)
+  
   comparison_probability_df <- format_total_to_comparison_prob(total_benefits_df)
   print(graph_boxplot_probability_comparison(fig_path, case_study_num = "comparison", comparison_probability_df))
   
-  summary_ci_df <- format_to_ci(total_benefits_df, confidence = 0.90)
-  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, log_transform = TRUE))
-  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, log_transform = FALSE))
+
+  summary_ci_df <- format_to_ci(total_benefits_df, case_study_mapping_wrapped, confidence = 0.90)
+  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = TRUE))
+  print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = FALSE))
   
 }
 

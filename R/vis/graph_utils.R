@@ -80,10 +80,10 @@ add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overla
   
   # Save as PNG (keeping the original output_file name)
   ggsave(output_file, plot = p, width = 18, height = 14, units = "cm", dpi = 300)
-  
-  
-  # Save as SVG
-  ggsave(paste0(base_output_file, ".svg"), plot = p, width = 18, height = 14, units = "cm")
+  # 
+  # 
+  # # Save as SVG
+  # ggsave(paste0(base_output_file, ".svg"), plot = p, width = 18, height = 14, units = "cm")
   
   return(p)
 }

@@ -27,6 +27,11 @@ set.seed(1)
 # Import case study specific parameters (filled with initial values)
 param_file <-  "parameters_20241103.csv"
 
+case_study_mapping <- c("12" = "Vocational Advice MSK", 
+                        "28" = "Breast Cancer Fractions", 
+                        "56" = "Hospital at Home", 
+                        "103" = "Compression Gloves", 
+                        "118" = "REACH-HF")
 
 # TODO coverage and discounting
 inflation_df <- inflation_data_loader()
@@ -126,7 +131,15 @@ write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
 write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
 
 
-overall_graphs(total_benefits_df)
+total_benefits_df <- read_csv(file.path(proc_path, "total_benefits_df.csv"))
+granular_benefits_df <- read_csv(file.path(proc_path, "granular_benefits_df.csv"))
+
+
+
+
+
+overall_graphs(total_benefits_df, case_study_mapping)
+
 
 
 case_studies_to_rerun <- total_benefits_df$case_study %>% unique() 
@@ -141,7 +154,7 @@ lapply(case_studies_to_rerun , function(x) case_study_specific_graphs(total_bene
                                                                       x))
 
 
-table_to_use <-  format_to_ci(total_benefits_df, confidence = 0.90)
+table_to_use <-  format_to_ci(total_benefits_df, case_study_mapping, confidence = 0.90)
 
 format_to_overall_roi <- function(total_benefits_df, confidence = 0.90) {
   uncertainty <- 1-confidence
