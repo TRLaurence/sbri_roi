@@ -1,4 +1,4 @@
-source("R/vis/graph_utils.R")
+source("R/graph_utils.R")
 library(ggplot2)
 library(tibble)
 library(waterfalls)

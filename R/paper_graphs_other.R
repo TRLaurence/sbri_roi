@@ -1,5 +1,5 @@
 source("R/vis/graph_utils.R")
-source("R/utils/paths.R")
+source("R/utils_paths.R")
 
 library(ggplot2)
 library(readr)

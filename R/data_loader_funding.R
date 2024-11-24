@@ -3,7 +3,7 @@ library(tidyr)
 library(stringr)
 library(readr)
 library(janitor)
-source("R/utils/paths.R")
+source("R/utils_paths.R")
 
 
 read_funding_data <- function(file_name = "funding_data.csv") {

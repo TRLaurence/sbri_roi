@@ -1,5 +1,5 @@
 # ihme
-source("R/utils/paths.R")
+source("R/utils_paths.R")
 library(readr)
 library(dplyr)
 library(tidyr)

@@ -1,15 +1,15 @@
-source("R/data_loaders/parameters.R")
-source("R/data_loaders/inflation.R")
-source("R/data_loaders/funding.R")
-source("R/utils/temporal.R")
-source("R/analysis/coverage.R")
-source("R/analysis/framework_adjustments.R")
-source("R/sensitivity/wrangle_sensitivity_parameters.R")
-source("R/vis/graphs_all.R")
+source("R/data_loader_parameters.R")
+source("R/data_loader_inflation.R")
+source("R/data_loader_funding.R")
+source("R/utils_temporal.R")
+source("R/analysis_coverage.R")
+source("R/analysis_framework_adjustments.R")
+source("R/wrangle_sensitivity_parameters.R")
+source("R/graphs_all.R")
 
 library(devtools)
-testthat::test_dir("tests/testthat/")
-getwd()
+testthat::test_dir("tests/testthat")
+
 
 library(dplyr)
 library(tidyr)
@@ -22,10 +22,10 @@ probabilistic_sensitivity <- TRUE
 rerun_modelling <- FALSE
 
 # Import functional parameters
-source("R/utils/paths.R")
+source("R/utils_paths.R")
 
 # Import general parameters
-source("R/utils/parameter_vals.R")
+source("R/utils_parameter_vals.R")
 
 set.seed(1)
 

@@ -2,7 +2,7 @@
 library(ggplot2)
 library(dplyr)
 library(forcats)
-source("R/utils/paths.R")
+source("R/utils_paths.R")
 # Define tasks, start dates, and end dates
 tasks <- c("Project identification", "Methods design and coding", 
            "Literature review", "Expert interviews", 

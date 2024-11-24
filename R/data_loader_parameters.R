@@ -1,6 +1,6 @@
 # Check parameter values, ensure they're consistent
 
-source("R/utils/paths.R")
+source("R/utils_paths.R")
 source("R/data_loaders/ihme.R")
 source("R/data_loaders/population.R")
 
