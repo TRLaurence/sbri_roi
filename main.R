@@ -8,8 +8,7 @@ source("R/wrangle_sensitivity_parameters.R")
 source("R/graphs_all.R")
 
 library(devtools)
-testthat::test_dir("tests/testthat")
-
+devtools::test()
 
 library(dplyr)
 library(tidyr)
@@ -19,7 +18,7 @@ library(tidyr)
 
 deterministic_sensitivity <- TRUE
 probabilistic_sensitivity <- TRUE
-rerun_modelling <- FALSE
+rerun_modelling <- TRUE
 
 # Import functional parameters
 source("R/utils_paths.R")
@@ -83,16 +82,14 @@ parameter_scenarios <- set_up_all_sensitivities(parameter_vals,
                                                 probabilistic_sensitivity,
                                                 number_of_samples)
 
+
 research_costs <- parameter_scenarios %>%
   select(case_study = case_study_number, 
          scenario, 
          research_costs = research_funding_value,
          applied_adjustment = applied_adjustment_value) 
 
-cost_cols <- str_subset(colnames(parameter_scenarios), "cost|productivity")
-value_cols  <- str_subset(cost_cols, "_value")
-value_year_mapping  <- str_subset(cost_cols, "_year")
-names(value_year_mapping) <- value_cols 
+value_year_mapping <- create_value_year_mapping(parameter_scenarios)
 
 intervention_param_scenarios <- parameter_scenarios %>%
   select(-all_of(c("research_funding_value", "applied_adjustment_value" )))
@@ -132,9 +129,9 @@ if (rerun_modelling) {
                              by = c("case_study" = "case_study_number", "scenario")) 
   
   
-  
-  write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
-  write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
+# TODO uncomment these  
+  # write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
+  # write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
 } else {
   total_benefits_df <- read_csv(file.path(proc_path, "total_benefits_df.csv"))
   granular_benefits_df <- read_csv(file.path(proc_path, "granular_benefits_df.csv"))

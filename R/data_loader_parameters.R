@@ -1,8 +1,8 @@
 # Check parameter values, ensure they're consistent
 
 source("R/utils_paths.R")
-source("R/data_loaders/ihme.R")
-source("R/data_loaders/population.R")
+source("R/data_loader_ihme.R")
+source("R/data_loader_population.R")
 
 library(dplyr)
 library(tidyr)

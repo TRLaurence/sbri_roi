@@ -2,6 +2,27 @@ library(stringr)
 library(dplyr)
 library(tidyr)
 
+#' @title Set up reference scenario
+#' @description This function sets up the reference scenario
+#' @param parameter_vals A dataframe containing the parameter values
+#' @return A dataframe containing the reference scenario
+#' 
+#' @examples
+#' 
+#' parameter_vals <- data.frame(
+#'  initial_population_value = 1000,
+#'  initial_population_lower = 900,
+#'  initial_population_upper = 1100,
+#'  healthcare_cost_savings_value = 1000,
+#'  healthcare_cost_savings_lower = 900,
+#'  healthcare_cost_savings_upper = 1100,
+#'  healthcare_cost_savings_year = 2020
+#'  )
+#' 
+#' set_up_reference(parameter_vals)
+#' 
+#' 
+#' @export
 set_up_reference <- function(parameter_vals) {
   parameter_vals <-  select(parameter_vals, 
                                !contains("upper") & !contains("lower"))
@@ -10,7 +31,27 @@ set_up_reference <- function(parameter_vals) {
   return(parameter_vals)
 }
 
-
+#' @title Sets up deterministic parameter values
+#' @description This creates a parameter value row for each upper and lower value of each parameter
+#' @param parameter_vals A dataframe containing the parameter values, the lower and upper values, and the year
+#' @return A dataframe with a row for each parameter value and sensitivity
+#' 
+#' @examples
+#' 
+#' parameter_vals <- data.frame(
+#'  initial_population_value = 1000,
+#'  initial_population_lower = 900,
+#'  initial_population_upper = 1100,
+#'  healthcare_cost_savings_value = 1000,
+#'  healthcare_cost_savings_lower = 900,
+#'  healthcare_cost_savings_upper = 1100,
+#'  healthcare_cost_savings_year = 2020
+#'  )
+#' 
+#' set_up_reference(parameter_vals)
+#' 
+#' 
+#' @export
 set_up_deterministic <-  function(parameter_vals) {
   parameters_to_change <- names(parameter_vals)[str_detect(names(parameter_vals), "_value")]
   sensitivity_versions <- c("upper", "lower")
@@ -43,6 +84,9 @@ set_up_deterministic <-  function(parameter_vals) {
   return(df_of_sensitivities)
 }
 
+#' @title Finds the appropriate distribution for a parameter
+#' @param parameter_val The name of the parameter
+#' @return str - The name of the distribution
 distribution_mapping <- function(parameter_val) {
   distributions_vector <- c(
     "initial_population" = "gamma", # This value is always positive
@@ -63,26 +107,40 @@ distribution_mapping <- function(parameter_val) {
     stop(paste("No distribution found for", parameter_val))
   }
   
-  return(distributions_vector[parameter_val])
+  return(distributions_vector[[parameter_val]])
 }
 
-# Helper function for Gamma distribution
+#' @title Obtain the alpha and beta parameters from a gamma distribution
+#' @param mean_value The mean value of the distribution
+#' @param std_dev The standard deviation of the distribution
+#' @return A list containing the alpha and beta parameters
 gamma_params <- function(mean_value, std_dev) {
+  stopifnot(mean_value > 0, std_dev > 0)
   beta <- mean_value / (std_dev^2)
   alpha <- mean_value * beta
   return(list(alpha = alpha, beta = beta))
 }
 
-# Helper function for Beta distribution
+#' @title Obtain the alpha and beta parameters from a beta distribution
+#' @param mean_value The mean value of the distribution
+#' @param std_dev The standard deviation of the distribution
+#' @return A list containing the alpha and beta parameters
 beta_params <- function(mean_value, std_dev) {
+  stopifnot(mean_value > 0, mean_value < 1, std_dev > 0, std_dev < 1)
   var_value <- std_dev^2
   alpha <- ((mean_value * (1 - mean_value)) / var_value - 1) * mean_value
   beta <- alpha * (1 / mean_value - 1)
   return(list(alpha = alpha, beta = beta))
 }
 
-
-# Main function to generate random samples based on the distribution
+#' @title Generate a distribution of parameter values for a given distrbution
+#' @param mean_value The mean value of the distribution
+#' @param lower_bound The lower bound of the distribution
+#' @param upper_bound The upper bound of the distribution
+#' @param n The number of samples to generate
+#' @param distribution The distribution to use (normal, gamma, beta, uniform)
+#' @return A vector of n samples from the distribution
+#' @export
 generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta", "uniform")) {
   set.seed(1)
   z_value <- 1.96  # for 95% confidence interval
@@ -136,7 +194,12 @@ generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distr
   
   return(samples)
 }
-
+#' @title Create a probabilistic data frame
+#' @param case_study_vals A data frame of parameter values filtered to the case study
+#' @param parameters_to_change A vector of parameter names to change these should match exactly to the column names in case_study_vals
+#' e.g initial_population_value or coverage_init_value
+#' @param number_of_samples The number of samples to generate
+#' @return A data frame of probabilistic parameter values
 create_matching_probabilistic_df <- function(case_study_vals, parameters_to_change, number_of_samples) {
   data_frame_of_vals <- data.frame(scenario = paste0("probabilistic", as.character(1:number_of_samples)))
   for (j in 1:length(parameters_to_change)) {
@@ -160,10 +223,12 @@ create_matching_probabilistic_df <- function(case_study_vals, parameters_to_chan
   return(data_frame_of_vals)
 }
 
+#' @title Set up a probabilistic data frame
+#' @param parameter_vals A data frame of parameter values
+#' @param number_of_samples The number of samples to generate
+#' @return A data frame of probabilistic parameter values
 set_up_probabilistic <-  function(parameter_vals, number_of_samples) {
   parameters_to_change <- names(parameter_vals)[str_detect(names(parameter_vals), "_value")]
-  print("parameters_to_change")
-  print(parameters_to_change)
   
   case_studies <- unique(parameter_vals$case_study_number)
   
@@ -180,8 +245,18 @@ set_up_probabilistic <-  function(parameter_vals, number_of_samples) {
   
   df_of_sensitivities <- df_of_sensitivities %>%
     select(!contains("upper") & !contains("lower"))
+  
+  return(df_of_sensitivities)
 }
 
+#' @title Set up all of the sensitivities for the analysis
+#' @param parameter_vals A data frame of parameter values, anything with _value in the name will be considered a parameter
+#' and requires a _lower and _upper value even if they're the same
+#' @param deterministic_sensitivity A boolean to determine if deterministic sensitivity should be included
+#' @param probabilistic_sensitivity A boolean to determine if probabilistic sensitivity should be included
+#' @param number_of_samples The number of samples to generate for probabilistic sensitivity
+#' 
+#' @return A data frame of all of the sensitivities without the upper and lower bounds
 set_up_all_sensitivities <- function(parameter_vals, deterministic_sensitivity, probabilistic_sensitivity, number_of_samples) {
   reference_df <- set_up_reference(parameter_vals)
   all_df <- reference_df

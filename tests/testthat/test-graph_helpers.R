@@ -1,5 +1,4 @@
 library(testthat)
-source("R/vis/graphs_all.R")
 
 df <- data.frame(
   variable = c("cost_value", "productivity_value", "cost_year", "productivity_year")

@@ -1,7 +1,7 @@
 library(testthat)
 library(dplyr)
 library(tidyr)
-source("R/analysis/coverage.R")
+# source("R/analysis_coverage.R")
 
 
 
@@ -207,3 +207,35 @@ test_that("Coverage 4 values in range  min", {
   )
 })
 
+
+# Define a test case where the input matches a simple example
+test_that("coverage_adjust_row replicates single year functionality", {
+  row <- list(
+    coverage_init_value = 0.1,
+    coverage_end_value = 0.2,
+    coverage_init_year = 2015,
+    coverage_end_year = 2015
+  )
+  years_of_coverage <- 1
+  
+  result <- coverage_adjust_row(row, years_of_coverage)
+  expected <- data.frame(year = 2015, coverage = 0.1)
+  
+  expect_equal(result, expected)
+})
+
+# Define a test case where the input spans multiple years
+test_that("coverage_adjust_row replicates multi-year functionality", {
+  row <- list(
+    coverage_init_value = 0.1,
+    coverage_end_value = 0.2,
+    coverage_init_year = 2015,
+    coverage_end_year = 2016
+  )
+  years_of_coverage <- 2
+  
+  result <- coverage_adjust_row(row, years_of_coverage)
+  expected <- data.frame(year = c(2015, 2016), coverage = c(0.1, 0.2))
+  
+  expect_equal(result, expected)
+})
