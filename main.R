@@ -7,6 +7,10 @@ source("R/analysis/framework_adjustments.R")
 source("R/sensitivity/wrangle_sensitivity_parameters.R")
 source("R/vis/graphs_all.R")
 
+library(devtools)
+testthat::test_dir("tests/testthat/")
+getwd()
+
 library(dplyr)
 library(tidyr)
 
@@ -15,6 +19,7 @@ library(tidyr)
 
 deterministic_sensitivity <- TRUE
 probabilistic_sensitivity <- TRUE
+rerun_modelling <- FALSE
 
 # Import functional parameters
 source("R/utils/paths.R")
@@ -98,41 +103,45 @@ intervention_param_scenarios <- standardise_df_to_target(intervention_param_scen
                                                 target_cost_year, 
                                                 discount_rate = cost_discount_rate)
 
-granular_benefits_df <- benefits_for_all_rows(intervention_param_scenarios, health_discount_rate, cost_discount_rate, monetary_qaly, target_cost_year, years_of_coverage)
+if (rerun_modelling) {
+  granular_benefits_df <- benefits_for_all_rows(intervention_param_scenarios, health_discount_rate, cost_discount_rate, monetary_qaly, target_cost_year, years_of_coverage)
+  
+  
+  rel_cols <- str_subset(names(granular_benefits_df), "_pop$|_savings$|_gains$|^optimism_bias")
+  rel_cols <- c("case_study", "scenario", rel_cols)
+  total_benefits_df <- granular_benefits_df %>%
+    select(all_of(rel_cols)) %>%
+    group_by(case_study, scenario) %>%
+    summarise_all(sum) %>%
+    ungroup()
+  
+  
+  
+  total_benefits_df <- left_join(total_benefits_df, research_costs, by = c("case_study", "scenario"))
+  
+  total_benefits_df <- total_benefits_df %>%
+    mutate(total_benefits = qaly_gains + healthcare_cost_savings + socialcare_cost_savings + productivity_gains + optimism_bias_adjustment) %>%
+    mutate(research_costs = research_costs * applied_adjustment) %>%
+    mutate(roi = return_on_investment(total_benefits, research_costs))
+  
+  
+  negative_rois <- filter(total_benefits_df, roi < 0 )
+  
+  negative_rois <- left_join(negative_rois, 
+                             parameter_scenarios, 
+                             by = c("case_study" = "case_study_number", "scenario")) 
+  
+  
+  
+  write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
+  write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
+} else {
+  total_benefits_df <- read_csv(file.path(proc_path, "total_benefits_df.csv"))
+  granular_benefits_df <- read_csv(file.path(proc_path, "granular_benefits_df.csv"))
+}
 
 
-rel_cols <- str_subset(names(granular_benefits_df), "_pop$|_savings$|_gains$|^optimism_bias")
-rel_cols <- c("case_study", "scenario", rel_cols)
-total_benefits_df <- granular_benefits_df %>%
-  select(all_of(rel_cols)) %>%
-  group_by(case_study, scenario) %>%
-  summarise_all(sum) %>%
-  ungroup()
 
-
-
-total_benefits_df <- left_join(total_benefits_df, research_costs, by = c("case_study", "scenario"))
-
-total_benefits_df <- total_benefits_df %>%
-  mutate(total_benefits = qaly_gains + healthcare_cost_savings + socialcare_cost_savings + productivity_gains + optimism_bias_adjustment) %>%
-  mutate(research_costs = research_costs * applied_adjustment) %>%
-  mutate(roi = return_on_investment(total_benefits, research_costs))
-
-
-negative_rois <- filter(total_benefits_df, roi < 0 )
-
-negative_rois <- left_join(negative_rois, 
-                           parameter_scenarios, 
-                           by = c("case_study" = "case_study_number", "scenario")) 
-
-
-
-write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
-write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
-
-
-total_benefits_df <- read_csv(file.path(proc_path, "total_benefits_df.csv"))
-granular_benefits_df <- read_csv(file.path(proc_path, "granular_benefits_df.csv"))
 
 
 
@@ -151,6 +160,7 @@ reference_research_costs_only <- total_benefits_df %>%
 lapply(case_studies_to_rerun , function(x) case_study_specific_graphs(total_benefits_df, 
                                                                       reference_research_costs_only, 
                                                                       granular_benefits_df, 
+                                                                      name_vals,
                                                                       x))
 
 
@@ -200,3 +210,16 @@ aggregated_benefits <- aggregated_benefits %>%
   mutate_at(vars(-case_study, -scenario), funs(. / 1e6))
 
 write_csv(aggregated_benefits, file.path(table_path, "aggregated_benefits.csv"))
+
+
+karl_table <- total_benefits_df %>%
+  filter(scenario == "reference") %>%
+  select(case_study, research_costs, applied_adjustment, benefitting_pop, total_benefits, roi) %>%
+  mutate(core_research_costs = research_costs * (1/applied_adjustment)) %>%
+  mutate(related_research_costs = research_costs - core_research_costs) %>%
+  select(case_study, core_research_costs, related_research_costs, benefitting_pop, total_benefits, roi)
+
+write_csv(karl_table, file.path(table_path, "karl_table.csv"))
+  
+
+names(karl_table)

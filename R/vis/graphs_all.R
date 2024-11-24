@@ -199,8 +199,11 @@ graph_tornado_determ <- function(fig_path, case_study_num, graph_data) {
   return(p)
 }
 
-waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FALSE) {
-  print(data)
+waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FALSE, ppt_version = FALSE) {
+  
+  if (ppt_version) {
+    FONT_FAMILY <- "Arial"
+  }
   
   # Custom y-axis label formatter
   y_formatter <- function(x) {
@@ -276,33 +279,50 @@ waterfall_chart <- function(data, show_values = TRUE, units = "none", log_y = FA
   return(p)
 }
 
-graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df, name_vals) {
+graph_pop_waterfall <- function(fig_path, case_study_num, pop_waterfall_chart_df, ppt_version = FALSE) {
   # dev.off()
   chart_name <- "pop_waterfall"
   
-  p <- waterfall_chart(pop_waterfall_chart_df)
+  p <- waterfall_chart(pop_waterfall_chart_df, ppt_version = ppt_version)
+  
+  if (ppt_version) {
+    x_lab <- ""
+    y_lab <- "Modelled population (people)"  
+  } else {
+    x_lab <- "Adjustment"
+    y_lab <- "Modelled population (people)"
+  }
+  
   
   p <- p +
-    labs(x = "Adjustment",
-         y = "Modelled population (people)")
+    labs(x = x_lab,
+         y = y_lab)
     
-  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, legend_pos = "none")
+  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, legend_pos = "none", ppt_version = ppt_version)
   
   return(p)
 }
 
 
-graph_benefit_waterfall <- function(fig_path, case_study_num, benefit_waterfall_chart_df) {
+graph_benefit_waterfall <- function(fig_path, case_study_num, benefit_waterfall_chart_df, ppt_version = FALSE) {
   # dev.off()
   chart_name <- "benefit_waterfall"
   
-  p <- waterfall_chart(benefit_waterfall_chart_df)
+  p <- waterfall_chart(benefit_waterfall_chart_df, ppt_version = ppt_version)
+  
+  if (ppt_version) {
+    x_lab <- ""
+    y_lab <- "Net benefit (GBP)"    
+  } else {
+    x_lab <- "Benefit type"
+    y_lab <- "Net benefit (GBP)"
+  }
   
   p <- p +
-    labs(x = "Benefit type",
-         y = "Net benefit (GBP)")
+    labs(x = x_lab,
+         y = y_lab)
   
-  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, legend_pos = "none")
+  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name, legend_pos = "none", ppt_version = ppt_version)
   
   return(p)
 }
@@ -500,7 +520,7 @@ remap_to_fancy_categories <- function(variable, fancy_categories) {
   return(remapped_variable)
 }
 
-format_df_for_waterfall <- function(data, fancy_categories = NULL) {
+format_df_for_waterfall <- function(data, fancy_categories = NULL, str_wrap_val = 20) {
   # Ensure data has 'category' and 'value' columns
   if (!all(c("category", "value") %in% names(data))) {
     stop("Data must contain 'category' and 'value' columns")
@@ -528,7 +548,8 @@ format_df_for_waterfall <- function(data, fancy_categories = NULL) {
   
   if (!is.null(fancy_categories)) {
     data$category <- remap_to_fancy_categories(data$category, fancy_categories)
-    data$category <- str_wrap(data$category, width = 20)
+    # TODO switch back to 20
+    data$category <- str_wrap(data$category, width = str_wrap_val)
   } 
   data$category <- factor(data$category, levels = data$category)
   # Position for rectangles
@@ -542,7 +563,7 @@ format_df_for_waterfall <- function(data, fancy_categories = NULL) {
   return(data)
 }
 
-format_to_waterfall <- function(granular_benefits_df, reference_research_costs_only, case_study_num, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "optimism_bias_adjustment")) {
+format_to_waterfall <- function(granular_benefits_df, reference_research_costs_only, case_study_num, name_vals, expected_bridge_cols = c("init_pop", "target_pop", "benefitting_pop", "qaly_gains", "healthcare_cost_savings", "socialcare_cost_savings", "productivity_gains", "optimism_bias_adjustment")) {
   stopifnot(all(c(expected_bridge_cols %in% colnames(granular_benefits_df))))
   
   reference_only <- granular_benefits_df %>%
@@ -576,7 +597,8 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
   pop_fancy_categories <- filter(name_vals, case_study_number == case_study_num) %>%
     select(-case_study_number) 
   
-  pop_waterfall_chart_df <- format_df_for_waterfall(pop_waterfall_chart_df, pop_fancy_categories)
+  #TODO Switch str_wrap_val back to 20
+  pop_waterfall_chart_df <- format_df_for_waterfall(pop_waterfall_chart_df, pop_fancy_categories, str_wrap_val = 20) # 18 for ppt
   
   benefitting_pop <- all_waterfall_df$benefitting_pop
   
@@ -596,8 +618,8 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
                                 "optimism_bias_adjustment" = "Optimism bias adjustment",
                                 "research_costs" = "Research costs",
                                 "total" = "Total benefits")
-  
-  benefit_waterfall_chart_df <- format_df_for_waterfall(benefit_waterfall_chart_df, benefit_fancy_categories)
+  #TODO Switch str_wrap_val back to 20
+  benefit_waterfall_chart_df <- format_df_for_waterfall(benefit_waterfall_chart_df, benefit_fancy_categories, str_wrap_val = 20) # 15 for ppt
   
     
   stacked_roi_chart_df <- all_waterfall_df %>%
@@ -636,7 +658,7 @@ overall_graphs <- function(total_benefits_df, case_study_mapping) {
   
 }
 
-case_study_specific_graphs <- function(total_benefits_df, reference_research_costs_only, granular_benefits_df, case_study_num= 99999) {
+case_study_specific_graphs <- function(total_benefits_df, reference_research_costs_only, granular_benefits_df, name_vals, case_study_num= 99999) {
   probabilistic_df <- format_total_to_prob(total_benefits_df, case_study_num)
   print(graph_probability_histogram(fig_path, case_study_num, probabilistic_df))
 
@@ -648,10 +670,12 @@ case_study_specific_graphs <- function(total_benefits_df, reference_research_cos
   print(graph_uptake_projection(fig_path, case_study_num, coverage_df))
   print(graph_uptake_confidence_interval(fig_path, case_study_num, uptake_ci_df))
 
-  all_waterfall_list <- format_to_waterfall(granular_benefits_df, reference_research_costs_only, case_study_num)
+  all_waterfall_list <- format_to_waterfall(granular_benefits_df, reference_research_costs_only, case_study_num, name_vals)
   print(graph_stacked_benefits_over_costs(fig_path, case_study_num, all_waterfall_list$stacked_roi_chart_df))
   print(graph_pop_waterfall(fig_path, case_study_num, all_waterfall_list$pop_waterfall_chart_df))
   print(graph_benefit_waterfall(fig_path, case_study_num, all_waterfall_list$benefit_waterfall_chart_df))
+  print(graph_pop_waterfall(fig_path, case_study_num, all_waterfall_list$pop_waterfall_chart_df, ppt_version = TRUE))
+  print(graph_benefit_waterfall(fig_path, case_study_num, all_waterfall_list$benefit_waterfall_chart_df, ppt_version = TRUE))
 }
 
 

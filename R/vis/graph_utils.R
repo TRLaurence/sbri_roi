@@ -49,10 +49,17 @@ format_units <- function(x, units) {
 
 
 
-add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overlap_x_axis = FALSE, legend_pos = "top") {
-
+add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overlap_x_axis = FALSE, legend_pos = "top", ppt_version = FALSE) {
   
-  output_file <- paste0(fig_path, case_study, "_", chart_name, ".png")
+  if (ppt_version == TRUE) {
+    FONT_FAMILY <- "Arial"
+    clarifier <- "ppt_"
+  } else {
+    clarifier <- ""
+  }
+  
+  
+  output_file <- paste0(fig_path, case_study, "_", clarifier, chart_name, ".png")
   
   if (avoid_overlap_x_axis) {
     x_axis_theme <- element_text(family = FONT_FAMILY, size = 10, angle = 45, hjust = 1)
@@ -79,7 +86,11 @@ add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overla
   base_output_file <- sub("\\.png$", "", output_file)
   
   # Save as PNG (keeping the original output_file name)
-  ggsave(output_file, plot = p, width = 18, height = 14, units = "cm", dpi = 300)
+  if (ppt_version == TRUE) {
+    ggsave(output_file, plot = p, width = 18, height = 12, units = "cm", dpi = 300)
+  } else {
+    ggsave(output_file, plot = p, width = 18, height = 14, units = "cm", dpi = 300)
+  }
   # 
   # 
   # # Save as SVG
