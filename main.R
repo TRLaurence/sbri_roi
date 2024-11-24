@@ -18,7 +18,7 @@ library(tidyr)
 
 deterministic_sensitivity <- TRUE
 probabilistic_sensitivity <- TRUE
-rerun_modelling <- TRUE
+rerun_modelling <- FALSE
 
 # Import functional parameters
 source("R/utils_paths.R")
@@ -129,17 +129,15 @@ if (rerun_modelling) {
                              by = c("case_study" = "case_study_number", "scenario")) 
   
   
-# TODO uncomment these  
-  # write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
-  # write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
+  write_csv(total_benefits_df, file.path(proc_path, "total_benefits_df.csv"))
+  write_csv(granular_benefits_df, file.path(proc_path, "granular_benefits_df.csv"))
 } else {
   total_benefits_df <- read_csv(file.path(proc_path, "total_benefits_df.csv"))
   granular_benefits_df <- read_csv(file.path(proc_path, "granular_benefits_df.csv"))
 }
 
 
-
-
+write_csv(granular_benefits_df, file.path(proc_path, "check.csv"))
 
 
 
