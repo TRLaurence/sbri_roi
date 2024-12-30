@@ -85,3 +85,50 @@ adjust_for_fec_and_ni <- function(funding, employer_ni) {
   return(funding)
 }
 
+#' @description Adjust for fec, ni, inflation,discount rate, under ascertainment bias and applied adjustments
+#' @param funding The funding data has columns case_study_number, spend_year, adjusted_annual_spend
+#' @param employer_ni The employer NI rate
+#' @param inflation_df A datframe of the GDP deflator
+#' @param cost_discount_rate The discount rate
+#' @param target_cost_year The target year for the cost
+#' @param under_ascertainment_bias The under ascertainment bias of research funding
+#' @param under_ascertaintment_lower The lower bound of the under ascertainment bias
+#' @param under_ascertaintment_upper The upper bound of the under ascertainment bias
+#' @param applied_adjustment The applied adjustment for applied research being underpinned by basic research
+#' @param applied_adjustment_lower The lower bound of the applied adjustment
+#' @param applied_adjustment_upper The upper bound of the applied adjustment
+all_funding_adjustments <- function(funding, 
+                                    employer_ni, 
+                                    inflation_df, 
+                                    cost_discount_rate, 
+                                    target_cost_year, 
+                                    under_ascertainment_bias, 
+                                    under_ascertaintment_lower, 
+                                    under_ascertaintment_upper,
+                                    applied_adjustment,
+                                    applied_adjustment_lower,
+                                    applied_adjustment_upper) {
+  funding <- adjust_for_fec_and_ni(funding, employer_ni)
+  
+  funding <- funding %>%
+    rowwise() %>%
+    mutate(adjusted_annual_spend = apply_inflation(adjusted_annual_spend, inflation_df, spend_year, target_cost_year)) %>%
+    mutate(adjusted_annual_spend = apply_discount_basic(adjusted_annual_spend, cost_discount_rate, spend_year, target_cost_year))
+  
+  funding <- funding %>%
+    group_by(case_study_number) %>%
+    summarise(research_costs_value = sum(adjusted_annual_spend)) %>%
+    ungroup()
+  
+  funding <- funding %>%
+    mutate(research_funding_lower = research_costs_value * under_ascertaintment_lower) %>%
+    mutate(research_funding_upper = research_costs_value * under_ascertaintment_upper) %>%
+    mutate(research_funding_value = research_costs_value * under_ascertainment_bias) %>%
+    mutate(applied_adjustment_value = applied_adjustment) %>%
+    mutate(applied_adjustment_lower = applied_adjustment_lower) %>%
+    mutate(applied_adjustment_upper = applied_adjustment_upper) %>%
+    select(-research_costs_value )
+  
+  return(funding)  
+}
+

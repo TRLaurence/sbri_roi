@@ -1,7 +1,7 @@
 source("R/graph_utils.R")
 library(ggplot2)
 library(tibble)
-library(waterfalls)
+# library(waterfalls)
 library(scales)
 
 # graph_template <- function(fig_path, case_study_num, chart_df) {
@@ -361,7 +361,7 @@ graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_
     geom_bar(stat = "identity", position = "stack", width = 0.6) +
     # Add text at the top with the ROI
     annotate("text", x = 1.5, y = cost_max , label = paste("ROI: ", roi_val), vjust = 1.5, hjust = 0.5, size = 4, family = FONT_FAMILY) +
-    labs(title = "", x = "", y = "Value") +
+    labs(title = "", x = "", y = "Monetary value") +
     scale_y_continuous(labels = label_comma()) +
     scale_fill_manual(values = colors) 
   
@@ -404,6 +404,7 @@ format_variable_names <- function(variable) {
   # Capitalise QALY and the first letter of the entire string
   variable <- sapply(variable, capitalise_first_letter)
   variable <- str_replace_all(variable, "Qaly|qaly", "QALY")
+  variable <- str_replace_all(variable, "Socialcare", "Social care")
   return(variable)
 }
 

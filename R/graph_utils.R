@@ -75,8 +75,9 @@ add_theme_and_save <- function(p, fig_path, case_study, chart_name, avoid_overla
           axis.text.x = x_axis_theme,
           axis.text.y = element_text(family = FONT_FAMILY, size = 10),
           legend.position = legend_pos,
-          legend.justification = "right",
-          legend.title = element_text(family = FONT_FAMILY, size = 10),
+          legend.justification = "center",
+          # legend.title = element_text(family = FONT_FAMILY, size = 10),
+          legend.title = element_blank(),
           legend.text = element_text(family = FONT_FAMILY, size = 8),
           strip.text = element_text(family = FONT_FAMILY, size = 10)  # Facet title font
     )

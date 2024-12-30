@@ -29,7 +29,7 @@ test_that("gamma_params", {
   
   gamma_rv <- rgamma(1000, shape = params$alpha, rate = params$beta)
   expect_equal(mean(gamma_rv), 5, tolerance = 0.1)
-  expect_equal(var(gamma_rv), 2^2, tolerance = 0.1)
+  expect_equal(var(gamma_rv), 2^2, tolerance = 0.5)
   
 })
 

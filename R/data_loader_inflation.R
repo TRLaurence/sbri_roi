@@ -4,7 +4,12 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 
-inflation_data_loader <- function() {
+inflation_data_loader <- function(load_from_file, proc_path = "data/processed", file_name = "inflation_data.csv") {
+  
+  if(load_from_file) {
+    data <- read_csv(file.path(proc_path, file_name))
+    return(data)
+  }
   ons_link <- "https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/l8gg/qna"
   
   data <- read_csv(ons_link)
@@ -34,6 +39,6 @@ inflation_data_loader <- function() {
   
   # data <- data %>%
   #   mutate(annual_inflation = (gdp_deflator / lag(gdp_deflator)) - 1)
-
+  write_csv(data, file.path(proc_path, file_name))
   return(data)  
 }

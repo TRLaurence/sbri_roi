@@ -20,3 +20,9 @@ applied_adjustment_upper <- 1.5
 under_ascertainment_bias <- 1.2
 under_ascertaintment_lower <- 1.5 # This is higher despite being called lower because if more research is missed, the ROI is lower
 under_ascertaintment_upper <- 0.9
+
+case_study_mapping <- c("12" = "Vocational Advice MSK", 
+                        "28" = "Breast Cancer Fractions", 
+                        "56" = "Hospital at Home", 
+                        "103" = "Compression Gloves", 
+                        "118" = "REACH-HF")

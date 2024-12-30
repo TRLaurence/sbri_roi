@@ -253,8 +253,70 @@ benefits_for_all_rows <- function(parameter_scenarios, health_discount_rate, cos
   return(all_granular_benefits_df)
 }
 
+#' @description This function aggregates over years to calculate total benefits for each scenario.
+#' @param granular_benefits_df A data frame containing annual granular benefits data.
+#' @param research_costs A data frame containing research costs for each scenario.
+#' @return A data frame containing total benefits and costs for each scenario
+aggregate_to_total_benefits <- function(granular_benefits_df, research_costs) {
+  rel_cols <- c("case_study", 
+                "scenario", 
+                "init_pop", 
+                "target_pop", 
+                "benefitting_pop", 
+                "qaly_gains", 
+                "healthcare_cost_savings", 
+                "socialcare_cost_savings", 
+                "productivity_gains", 
+                "optimism_bias_adjustment")
+  
+  total_benefits_df <- granular_benefits_df %>%
+    select(all_of(rel_cols)) %>%
+    group_by(case_study, scenario) %>%
+    summarise_all(sum) %>%
+    ungroup()
+  
+  total_benefits_df <- left_join(total_benefits_df, research_costs, by = c("case_study", "scenario"))
+  
+  total_benefits_df <- total_benefits_df %>%
+    mutate(total_benefits = qaly_gains + healthcare_cost_savings + socialcare_cost_savings + productivity_gains + optimism_bias_adjustment) %>%
+    mutate(research_costs = research_costs * applied_adjustment) %>%
+    mutate(roi = return_on_investment(total_benefits, research_costs))
+  
+  return(total_benefits_df)    
+}
+
+
 
 return_on_investment <- function(total_benefit, research_cost) {
   roi <- total_benefit / research_cost
   return(roi)
+}
+
+#' @description This function calculates the overall ROI and uncertainty of funding (across case studies) 
+#' for a given confidence level.
+#' @param total_benefits_df A data frame containing total benefits and costs for each scenario.
+#' @param confidence The confidence level for the uncertainty interval.
+#' @return A list containing the reference ROI, lower ROI, and upper ROI.
+format_to_overall_roi <- function(total_benefits_df, confidence = 0.90) {
+  uncertainty <- 1-confidence
+  
+  summary_ci_df <- total_benefits_df %>%
+    filter(str_detect(scenario, "reference|probabilistic")) %>%
+    group_by(scenario) %>%
+    summarise(weighted_roi = sum(total_benefits)/sum(research_costs)) %>%
+    ungroup()
+  
+  reference_roi <- summary_ci_df %>%
+    filter(scenario == "reference") %>%
+    select(weighted_roi) %>%
+    pull()
+  
+  uncertainty_interval <- summary_ci_df %>%
+    filter(scenario != "reference") %>%
+    summarise(lower = quantile(weighted_roi, uncertainty/2), 
+              upper = quantile(weighted_roi, 1 - uncertainty/2)) 
+  
+  list_rois <- list(reference_roi, lower_roi = uncertainty_interval$lower, upper_roi = uncertainty_interval$upper)
+  
+  return(list_rois)
 }
