@@ -1,5 +1,5 @@
-# nihr_roi
-A repo for modelling the Return on Investments of several different NIHR funded projects.
+# sbri_roi
+A repo for modelling the Return on Investments of several different SBRI funded projects.
 
 You need to ensure your directory structure matches R/utils_paths.R
 
