@@ -8,9 +8,8 @@ source("R/wrangle_sensitivity_parameters.R")
 source("R/graphs_all.R")
 
 set.seed(1)
-library(devtools)
-devtools::test()
-
+library(testthat)
+testthat::test_dir("tests/testthat")
 library(dplyr)
 library(tidyr)
 
