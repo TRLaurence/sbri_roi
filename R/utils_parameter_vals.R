@@ -1,5 +1,5 @@
 optimism_bias <- 0.15
-monetary_qaly <- 70000
+monetary_qaly <- 30000
 cost_discount_rate <- 0.035
 health_discount_rate <- 0.015
 target_cost_year <- 2023
@@ -21,8 +21,10 @@ under_ascertainment_bias <- 1.2
 under_ascertaintment_lower <- 1.5 # This is higher despite being called lower because if more research is missed, the ROI is lower
 under_ascertaintment_upper <- 0.9
 
-case_study_mapping <- c("12" = "Vocational Advice MSK", 
-                        "28" = "Breast Cancer Fractions", 
-                        "56" = "Hospital at Home", 
-                        "103" = "Compression Gloves", 
-                        "118" = "REACH-HF")
+case_study_mapping <- c("NCPC02029" = "BRCA-DIRECT", 
+                        "dummy2" = "Dummy award 1", 
+                        "dummy3" = "Dummy award 2", 
+                        "dummy4" = "Dummy award 3", 
+                        "dummy1" = "Dummy award 4",
+                        "Remaining Awards" = "Remaining Awards",
+                        "Overall Programme" = "Overall Programme")

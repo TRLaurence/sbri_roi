@@ -15,7 +15,7 @@ library(tidyr)
 
 deterministic_sensitivity <- TRUE
 probabilistic_sensitivity <- TRUE
-rerun_modelling <- FALSE
+rerun_modelling <- TRUE
 
 # Import functional parameters
 source("R/utils_paths.R")
@@ -26,7 +26,7 @@ source("R/utils_parameter_vals.R")
 
 
 # Import case study specific parameters (filled with initial values)
-param_file <-  "parameters_20241103.csv"
+param_file <-  "parameters_20260419.csv"
 
 # Load the inflation data, cannot read from file if it has never been run
 inflation_df <- inflation_data_loader(load_from_file = TRUE, proc_path = proc_path, file_name = "inflation_data.csv")

@@ -395,6 +395,7 @@ format_total_to_prob <- function(total_benefits_df, case_study_num) {
 }
 
 format_variable_names <- function(variable) {
+  names_at_start <- names(variable)
   capitalise_first_letter <- function(string_val) {
     string_val <- paste(str_to_upper(str_sub(string_val, 1, 1)),str_sub(string_val, 2, -1), sep = "")
     return(string_val)
@@ -405,6 +406,7 @@ format_variable_names <- function(variable) {
   variable <- sapply(variable, capitalise_first_letter)
   variable <- str_replace_all(variable, "Qaly|qaly", "QALY")
   variable <- str_replace_all(variable, "Socialcare", "Social care")
+  names(variable) <- names_at_start
   return(variable)
 }
 
@@ -644,7 +646,7 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
 }
 
 ##### FUNCTIONS TO PRODUCE ALL THE GRAPHS######
-overall_graphs <- function(total_benefits_df, case_study_mapping) {
+overall_graphs <- function(total_benefits_df, case_study_mapping, dummy= FALSE) {
   
   case_study_mapping_wrapped <- str_wrap(case_study_mapping, width = 15)
   names(case_study_mapping_wrapped) <- names(case_study_mapping)
@@ -654,6 +656,13 @@ overall_graphs <- function(total_benefits_df, case_study_mapping) {
   
 
   summary_ci_df <- format_to_ci(total_benefits_df, case_study_mapping_wrapped, confidence = 0.90)
+  if (dummy){
+    min_roi <- min(summary_ci_df$reference)
+    mean_roi <- mean(summary_ci_df$reference)
+    summary_ci_df <- summary_ci_df %>%
+      bind_rows(data.frame(case_study = "Remaining\nAwards", reference = 1, lower = 0, upper = min_roi)) %>%
+      bind_rows(data.frame(case_study = "Overall\nProgramme", reference = (mean_roi + 1)/2, lower = 1, upper = (mean_roi + min_roi)/2))
+  }
   print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = TRUE))
   print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = FALSE))
   

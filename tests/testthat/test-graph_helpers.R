@@ -57,3 +57,14 @@ test_that("Test vec of variables",
           )
   
 )
+
+test_df_col <- data.frame(
+  variable = c("Qaly", "qaly", "test", "test and test")
+)$variable
+
+test_that("Test df column of variables",
+          expect_equal(
+            format_variable_names(test_df_col),
+            c("QALY", "QALY", "Test", "Test and test")
+          )
+)
