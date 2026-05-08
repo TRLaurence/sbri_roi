@@ -153,6 +153,24 @@ not_orion <- all_brain_cancer_data %>%
 check_not_orion <- not_orion %>%
   arrange(desc(count))
 
+all_pancreatic_and_bilary_tract <- c(
+  "C22.1", # Intrahepatic bile duct carcinoma / cholangiocarcinoma
+  "C23", # Gallbladder cancer
+  "C24.0", # Extrahepatic bile duct cancer
+  "C24.1", # Ampulla of Vater
+  "C24.8", # Overlapping lesion of biliary tract
+  "C24.9", # Biliary tract, unspecified
+  "C25" # Pancreatic cancer
+)
+  
+pancreatic_and_bilary_tract <- get_rel_data(icd_10_code_filter = all_pancreatic_and_bilary_tract,
+                                     age_filter = c("All ages"),
+                                     sex_filter = NULL,
+                                     raw_path,
+                                     file_name = "Cancer_Registrations_2021 for publication.ods")
+
+n_pancreatic_and_bilary_tract <- sum(pancreatic_and_bilary_tract$count)
+
 all_data <- get_rel_data(icd_10_code_filter = NULL,
                          age_filter = NULL,
                          sex_filter = NULL,
