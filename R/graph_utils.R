@@ -1,35 +1,55 @@
+# SBRI Healthcare brand colours
+# Top 4 = main colours; bottom 4 = secondary colours
 
-# TODO get NIHR colour scheme
+COLOR_BRAND_MAIN <- c(
+  "SBRI Blue"  = "#007DB3",  # RGB 0/125/179
+  "Light Blue" = "#A0D3E5",  # RGB 160/211/229
+  "Sky Blue"   = "#34AFD3",  # RGB 52/175/211
+  "Teal"       = "#2C948F"   # RGB 44/148/143
+)
+
+COLOR_BRAND_SECONDARY <- c(
+  "Lime Green" = "#8FBF21",  # RGB 143/191/33
+  "Pink"       = "#EA4B94",  # RGB 234/75/148
+  "Yellow"     = "#FFD500",  # RGB 255/213/0
+  "Orange"     = "#E84E0F"   # RGB 232/78/15
+)
+
 COLOR_CATEGORICAL <- c(
-  "Dark Blue" = "#193E72", 
-  "Red" = "#EA5D4E", 
-  "Orange" = "#F29330", 
-  "Yellow" = "#FED47A", 
-  "Purple" = "#6667AD", 
-  "Teal" = "#2EA9B0", 
-  "Green" = "#46A86C", 
-  "Light Grayish Blue" = "#ACBCC3"
+  COLOR_BRAND_MAIN,
+  COLOR_BRAND_SECONDARY
 )
 
+# No true red is provided in the brand palette, so orange is used for "Stop".
 COLOR_STOPLIGHT <- c(
-  "Stop" = "#EA5D4E", 
-  "Wait" = "#F29330", 
-  "Go" = "#193E72"
+  "Stop" = "#E84E0F",
+  "Wait" = "#FFD500",
+  "Go"   = "#8FBF21"
 )
 
+# This preserves your existing blue-to-orange structure.
+# Technically this is a diverging palette rather than a pure sequential palette.
 COLOR_SEQUENTIAL <- c(
-  "100Dark Blue" = "#193E72", 
-  "80Dark Blue" = "#475989", 
-  "60Dark Blue" = "#747CA3", 
-  "40Dark Blue" = "#A2A4C1", 
-  "20Dark Blue" = "#D0D0E0", 
-  "20Dark Orange" = "#FDEBD8", 
-  "40Dark Orange" = "#FCD6B0", 
-  "60Dark Orange" = "#F9C187", 
-  "80Dark Orange" = "#F6AB5D", 
-  "100Dark Orange" = "#F29330"
+  "100 SBRI Blue"   = "#007DB3",
+  "80 SBRI Blue"    = "#3397C2",
+  "60 SBRI Blue"    = "#66B1D1",
+  "40 SBRI Blue"    = "#99CBE1",
+  "20 SBRI Blue"    = "#CCE5F0",
+  "20 SBRI Orange"  = "#FADCCF",
+  "40 SBRI Orange"  = "#F6B89F",
+  "60 SBRI Orange"  = "#F1956F",
+  "80 SBRI Orange"  = "#ED713F",
+  "100 SBRI Orange" = "#E84E0F"
 )
 
+# Optional true sequential palette using only the core blue family
+COLOR_SEQUENTIAL_BLUE <- c(
+  "20 SBRI Blue"  = "#CCE5F0",
+  "40 SBRI Blue"  = "#99CBE1",
+  "60 SBRI Blue"  = "#66B1D1",
+  "80 SBRI Blue"  = "#3397C2",
+  "100 SBRI Blue" = "#007DB3"
+)
 FONT_FAMILY <- "serif"
 
 # Helper function to format numbers with units

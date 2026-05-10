@@ -689,5 +689,228 @@ case_study_specific_graphs <- function(total_benefits_df, reference_research_cos
 }
 
 
+graph_survival <- function(
+    fig_path,
+    case_study_num = "survival",
+    graph_df,
+    color_palette,
+    plot_title_str = "",
+    scenario_mapping = NULL) {
+  chart_name <- "survival"
+  
+  graph_df <- graph_df %>%
+    mutate(
+      years_since_diagnosis = days_since_diagnosis / 365,
+      scen = as.character(scen)
+    )
+  
+  observed_points <- graph_df %>%
+    filter(scen == "Observed") 
+  
+  survival_df <- graph_df %>%
+    filter(scen != "Observed")
+  
+  if (!is.null(scenario_mapping)) {
+    survival_df$scen <- factor(survival_df$scen, levels = scenario_mapping)
+  } else {
+    survival_df$scen <- factor(survival_df$scen)
+  }
+  
+  scenario_levels <- levels(survival_df$scen)
+  n_scenarios <- length(scenario_levels)
+  has_observed <- nrow(observed_points) > 0
+  
+  line_palette <- rep(
+    unname(color_palette[seq_len(min(n_scenarios, length(color_palette)))]),
+    length.out = n_scenarios
+  )
+  
+  scenario_colours <- setNames(
+    line_palette,
+    scenario_levels
+  )
+  
+  colour_values <- scenario_colours
+  legend_breaks <- scenario_levels
+  
+  if (has_observed) {
+    observed_colour <- if (length(color_palette) >= 6) {
+      unname(color_palette[6])
+    } else {
+      unname(color_palette[length(color_palette)])
+    }
+    
+    colour_values <- c(
+      colour_values,
+      setNames(observed_colour, "Observed")
+    )
+    
+    legend_breaks <- c(legend_breaks, "Observed")
+  }
+  
+  legend_linetypes <- rep(1, length(legend_breaks))
+  legend_shapes <- rep(NA_integer_, length(legend_breaks))
+  
+  if (has_observed) {
+    legend_linetypes[legend_breaks == "Observed"] <- 0
+    legend_shapes[legend_breaks == "Observed"] <- 16
+  }
+  
+  p <- ggplot() +
+    geom_line(
+      data = survival_df,
+      aes(
+        x = years_since_diagnosis,
+        y = cumulative_survival,
+        color = scen
+      ),
+      linewidth = 1
+    )
+  
+  if (has_observed) {
+    p <- p +
+      geom_point(
+        data = observed_points,
+        aes(
+          x = years_since_diagnosis,
+          y = cumulative_survival,
+          color = scen
+        ),
+        size = 3
+      )
+  }
+  
+  p <- p +
+    scale_color_manual(
+      values = colour_values,
+      breaks = legend_breaks
+    ) +
+    scale_y_continuous(
+      breaks = seq(0, 1, 0.2)
+    ) +
+    coord_cartesian(ylim = c(0, 1)) +
+    labs(
+      title = plot_title_str,
+      x = "Years Since Diagnosis",
+      y = "Cumulative Survival Probability",
+      color = "Scenario"
+    ) +
+    guides(
+      color = guide_legend(
+        override.aes = list(
+          linetype = legend_linetypes,
+          shape = legend_shapes
+        )
+      )
+    )
+  
+  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
+  
+  return(p)
+}
 
-
+graph_comparison_to_sud <- function(
+    fig_path,
+    case_study_num = "comparison_to_sud",
+    graph_df,
+    color_palette,
+    plot_title_str = "",
+    cancer_type_mapping = NULL,
+    age_group_mapping = NULL,
+    modelled_label = "Modelled",
+    y_as_percent = TRUE
+) {
+  chart_name <- "comparison_to_sud_mortality_change"
+  
+  graph_df <- graph_df %>%
+    mutate(
+      cancer_type = as.character(cancer_type),
+      age_group = as.character(age_group)
+    )
+  
+  if (is.null(cancer_type_mapping)) {
+    cancer_type_mapping <- unique(graph_df$cancer_type)
+  }
+  
+  if (is.null(age_group_mapping)) {
+    age_group_mapping <- unique(graph_df$age_group)
+  }
+  
+  # Keep the modelled estimate last in the legend if present
+  if (modelled_label %in% age_group_mapping) {
+    age_group_mapping <- c(
+      setdiff(age_group_mapping, modelled_label),
+      modelled_label
+    )
+  }
+  
+  graph_df <- graph_df %>%
+    mutate(
+      cancer_type = factor(cancer_type, levels = cancer_type_mapping),
+      age_group = factor(age_group, levels = age_group_mapping)
+    )
+  
+  age_group_levels <- levels(graph_df$age_group)
+  n_age_groups <- length(age_group_levels)
+  
+  age_group_colours <- setNames(
+    rep(
+      unname(color_palette[seq_len(min(n_age_groups, length(color_palette)))]),
+      length.out = n_age_groups
+    ),
+    age_group_levels
+  )
+  
+  age_group_shapes <- setNames(
+    rep(16, n_age_groups), # dots for SUD age groups
+    age_group_levels
+  )
+  
+  if (modelled_label %in% age_group_levels) {
+    age_group_shapes[modelled_label] <- 4 # x for modelled estimate
+  }
+  
+  point_position <- position_dodge(width = 0.55)
+  
+  p <- ggplot(
+    graph_df,
+    aes(
+      x = cancer_type,
+      y = mortality_change,
+      color = age_group,
+      shape = age_group
+    )
+  )  +
+    geom_point(
+      position = point_position,
+      size = 3.2,
+      stroke = 1.4
+    ) +
+    scale_color_manual(
+      values = age_group_colours,
+      breaks = age_group_levels
+    ) +
+    scale_shape_manual(
+      values = age_group_shapes,
+      breaks = age_group_levels
+    ) +
+    labs(
+      title = plot_title_str,
+      x = "Cancer Type",
+      y = "Mortality Change",
+      color = "Age Group",
+      shape = "Age Group"
+    )
+  
+  if (y_as_percent) {
+    p <- p +
+      scale_y_continuous(
+        labels = scales::percent_format(accuracy = 0.1),
+        limits = c(0, max(graph_df$mortality_change) * 1.1)
+      )
+  }
+  
+  p <- add_theme_and_save(p, fig_path, case_study_num, chart_name)
+  
+  return(p)
+}
