@@ -83,6 +83,7 @@ estimate_qaly <- function(survival_df, qaly_weight, discount_rate) {
     pull(total_qaly)
 }
 
+
 qaly_comparison <- function(post_speed_up, rel_daily_baseline, utility_weight, discount_rate) {
   baseline_qaly <- estimate_qaly(
     rel_daily_baseline,
@@ -566,5 +567,121 @@ graph_comparison_to_sud(
     "Sud 80+",
     "Hanna conservative",
     "Modelled"
+  )
+)
+
+pvflp_df <- read_csv(file.path(proc_path, "pvflp_per_death_by_cancer_site_by_year.csv"), show_col_types = FALSE) %>%
+  mutate(cause = str_to_lower(cause)) %>%
+  mutate(cause = ifelse(cause == "pancreas", "pancreatic", cause)) %>%
+  mutate(cause = ifelse(cause == "melanoma skin cancer", "melanoma", cause)) %>%
+  mutate(cause = ifelse(cause == "brain, other cns and intracranial tumours", "brain all", cause)) %>%
+  mutate(year = year - 1)
+pvflp_df$cause %>% unique()
+rel_brain_daily$cancer_type %>% unique()
+estimate_productivity <- function(survival_df, pvflp_df) {
+  
+  pvflp_df <- pvflp_df %>%
+    mutate(daily_prod_if_alive = weighted_total_gain_per_survivor / 365)
+  
+  survival_df <- survival_df %>%
+    arrange(days_since_diagnosis) %>%
+    left_join(pvflp_df, by = c("cancer_type" = "cause",
+                               "year")) %>%
+    mutate(
+      years_since_diagnosis = days_since_diagnosis / 365,
+      productivity_contribution = cumulative_survival * daily_prod_if_alive) %>%
+    select(year, country, cancer_type, stage, days_since_diagnosis, cumulative_survival, daily_prod_if_alive, productivity_contribution)
+  
+  prod_point <- survival_df %>%
+    summarise(productivity_contribution = sum(productivity_contribution), .groups = "drop") %>%
+    pull(productivity_contribution)
+  
+  return_list <- list(
+    productivity_df = survival_df,
+    overall_productivity = prod_point
+  )
+  return(return_list)
+  
+}
+
+compare_productivity <- function(intervention_survival_df, baseline_survival_df, pvflp_df) {
+  intervention_prod <- estimate_productivity(intervention_survival_df, pvflp_df)
+  baseline_prod <- estimate_productivity(baseline_survival_df, pvflp_df)
+  
+  productivity_gain = intervention_prod$overall_productivity - baseline_prod$overall_productivity
+  
+  return(list(
+    intervention_prod = intervention_prod,
+    baseline_prod = baseline_prod,
+    productivity_gain = productivity_gain
+  ))
+}
+modelling_results[[melanoma_case_study_title]]$productivity <- compare_productivity(
+  post_speed_up_melanoma,
+  rel_melanoma_daily,
+  pvflp_df
+)
+modelling_results[[pancreatic_case_study_title]]$productivity <- compare_productivity(
+  post_speed_up_pancreatic,
+  rel_pancreatic_daily,
+  pvflp_df
+)
+modelling_results[[brain_cancer_case_study_title]]$productivity <- compare_productivity(
+  post_speed_up_brain,
+  rel_brain_daily,
+  pvflp_df
+)
+
+# Add the upper and the lower bounds for the productivity gain based on the high and low HR scenarios
+modelling_results[[melanoma_case_study_title]]$productivity_high <- compare_productivity(
+  post_speed_up_melanoma_high,
+  rel_melanoma_daily,
+  pvflp_df
+)
+modelling_results[[melanoma_case_study_title]]$productivity_low <- compare_productivity(
+  post_speed_up_melanoma_low,
+  rel_melanoma_daily,
+  pvflp_df
+)
+
+modelling_results[[pancreatic_case_study_title]]$productivity_high <- compare_productivity(
+  post_speed_up_pancreatic_high,
+  rel_pancreatic_daily,
+  pvflp_df
+)
+modelling_results[[pancreatic_case_study_title]]$productivity_low <- compare_productivity(
+  post_speed_up_pancreatic_low,
+  rel_pancreatic_daily,
+  pvflp_df
+)
+modelling_results[[brain_cancer_case_study_title]]$productivity_high <- compare_productivity(
+  post_speed_up_brain_high,
+  rel_brain_daily,
+  pvflp_df
+)
+modelling_results[[brain_cancer_case_study_title]]$productivity_low <- compare_productivity(
+  post_speed_up_brain_low,
+  rel_brain_daily,
+  pvflp_df
+)
+
+productivity_gain_table <- bind_rows(
+  tibble::tibble(
+    case_study = melanoma_case_study_title,
+    productivity_gain = modelling_results[[melanoma_case_study_title]]$productivity$productivity_gain,
+    productivity_gain_low = modelling_results[[melanoma_case_study_title]]$productivity_low$productivity_gain,
+    productivity_gain_high = modelling_results[[melanoma_case_study_title]]$productivity_high$productivity_gain
+  ),
+  tibble::tibble(
+    case_study = pancreatic_case_study_title,
+    productivity_gain = modelling_results[[pancreatic_case_study_title]]$productivity$productivity_gain,
+    productivity_gain_low = modelling_results[[pancreatic_case_study_title]]$productivity_low$productivity_gain,
+    productivity_gain_high = modelling_results[[pancreatic_case_study_title]]$productivity_high$productivity_gain
+  ),
+  tibble::tibble(
+    case_study = brain_cancer_case_study_title,
+    productivity_gain = modelling_results[[brain_cancer_case_study_title]]$productivity$productivity_gain,
+    productivity_gain_low = modelling_results[[brain_cancer_case_study_title]]$productivity_low$productivity_gain,
+    productivity_gain_high = modelling_results[[brain_cancer_case_study_title]]$productivity_high$productivity_gain
   )
 )

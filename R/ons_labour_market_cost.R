@@ -421,7 +421,8 @@ costs_for_study <- total_cost_over_pre_6m %>%
   mutate(
     total_cost_pre_6_months = ifelse(is.na(total_cost_pre_6_months), 0, total_cost_pre_6_months),
     total_cost_post_5y = ifelse(is.na(total_cost_post_5y), 0, total_cost_post_5y)
-  ) 
+  ) %>%
+  mutate(cause = str_replace_all(cause, " cancer", "")) 
   
 write_csv(costs_for_study, "data/processed/cancer_costs_employee_pay_summary.csv")
 
@@ -444,7 +445,16 @@ productivity_loss_by_site_and_year <- custom_window %>%
   summarise(
     total_cost = -sum(value * interval_months, na.rm = TRUE)
   ) %>%
-  ungroup() %>%
+  ungroup() 
+
+
+check <- productivity_loss_by_site_and_year %>%
+  group_by(cause) %>%
+  summarise(total_cost = sum(total_cost, na.rm = TRUE)) %>%
+  arrange(desc(total_cost)) %>%
+  left_join(costs_for_study %>% select(cause, total_cost_pre_6_months, total_cost_post_5y), by = "cause") 
+
+productivity_loss_by_site_and_year <- productivity_loss_by_site_and_year %>%
   mutate(discounted_total_cost = total_cost / ((1+cost_discount_rate) ^ year)) %>%
   select(cause, year, productivity_loss = discounted_total_cost)
 
@@ -461,17 +471,90 @@ productivity_loss_by_site_and_year <- bind_rows(
   productivity_loss_by_site_and_year,
   dummy_brain_category,
   dummy_melanoma_category
-)
+) %>%
+  mutate(new_age_group = "0-65")
 
 lookup <- read_csv("data/processed/cancer_site_lookup.csv")
 
+
 loss_per_site_per_year_death <- read_csv("data/processed/loss_per_death_by_cancer_site_by_year.csv") %>%
-  select(cause = Cause, year = WhichLifeLostYear, loss_per_death) %>%
-  mutate(cause = str_to_lower(cause)) 
+  mutate(cause = str_to_lower(Cause)) 
+  
+loss_per_site_per_year_death$cause 
+deaths_for_weighting_later <- loss_per_site_per_year_death %>%
+  filter(WhichLifeLostYear==1) %>%
+  select(cause, new_age_group, total_deaths)
+loss_per_site_per_year_death <-  loss_per_site_per_year_death %>%  
+  select(new_age_group, cause, year = WhichLifeLostYear, loss_per_death)
 
 
 
 loss_per_site_per_year_death <- loss_per_site_per_year_death %>%
   left_join(lookup, by = c("cause" = "pvflp_site")) %>%
-  full_join(productivity_loss_by_site_and_year, by = c("ons_site" = "cause", "year")) %>%
-  filter(match_type != "unmatched")
+  full_join(productivity_loss_by_site_and_year, by = c("ons_site" = "cause", "year", "new_age_group")) %>%
+  filter(match_type != "unmatched") 
+
+loss_per_site_per_year_death <- loss_per_site_per_year_death%>%
+  mutate(proportional_loss_anyway = productivity_loss / loss_per_death)
+
+check_proportional_loss_anyway <- loss_per_site_per_year_death %>%
+  filter(!is.na(proportional_loss_anyway)) %>%
+  mutate(cause = substr(cause, 1, 15))
+
+library(ggplot2)
+ggplot(check_proportional_loss_anyway, aes(x = year, y = proportional_loss_anyway, color = cause )) +
+  geom_line() +
+  geom_point() +
+  theme_classic() +
+  labs(
+    title = "Proportional productivity loss relative to loss per death",
+    x = "Year since diagnosis",
+    y = "Proportional productivity loss"
+  ) +
+  theme(legend.position = "bottom")
+
+loss_per_site_per_year_death <- loss_per_site_per_year_death %>%
+  mutate(proportional_loss_anyway = ifelse(year > 10, 0, proportional_loss_anyway)) %>%
+  group_by(new_age_group, cause) %>%
+  arrange(year, .by_group = TRUE) %>%
+  fill(proportional_loss_anyway, .direction = "down") %>%
+  ungroup() 
+
+fill_in_prop_for_over_65 <- loss_per_site_per_year_death %>%
+  filter(new_age_group == "0-65") %>%
+  filter(year <11) %>%
+  mutate(new_age_group = "65+") %>%
+  select(new_age_group, cause, year, dummy = proportional_loss_anyway)
+
+loss_per_site_per_year_death <- loss_per_site_per_year_death %>%
+  left_join(fill_in_prop_for_over_65, by = c("new_age_group", "cause", "year")) %>%
+  mutate(proportional_loss_anyway = ifelse(is.na(proportional_loss_anyway) & (year < 11), dummy, proportional_loss_anyway)) %>%
+  select(-dummy) %>%
+  mutate(productivity_loss = loss_per_death*proportional_loss_anyway)
+
+
+pvflp_per_death_site_year <- loss_per_site_per_year_death %>%
+  group_by(cause, new_age_group, year) %>%
+  # Half recovered productivity first year, because ONS earnings won't capture paid time off which is likely in that period
+  mutate(loss_per_death_for_survivors = ifelse(year == 1, loss_per_death * 0.5, loss_per_death)) %>%
+  summarise(total_pvflp_per_death = sum(loss_per_death , na.rm = TRUE),
+            total_gain_per_survivor = sum(loss_per_death_for_survivors , na.rm = TRUE) - sum(productivity_loss, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(total_gain_per_survivor = ifelse(total_gain_per_survivor < 0, 0, total_gain_per_survivor))
+
+pvflp_per_death_site_year <- pvflp_per_death_site_year %>%
+  left_join(deaths_for_weighting_later, by = c("cause", "new_age_group")) %>%
+  group_by(cause, year ) %>%
+  summarise(weighted_total_pvflp_per_death = sum(total_pvflp_per_death * total_deaths, na.rm = TRUE) / sum(total_deaths, na.rm = TRUE),
+            weighted_total_gain_per_survivor = sum(total_gain_per_survivor * total_deaths, na.rm = TRUE) / sum(total_deaths, na.rm = TRUE)) %>%
+  ungroup()
+
+total_pvflp_per_death_site <- pvflp_per_death_site_year %>%
+  group_by(cause) %>%
+  summarise(weighted_total_pvflp_per_death = sum(weighted_total_pvflp_per_death, na.rm = TRUE),
+            weighted_total_gain_per_survivor = sum(weighted_total_gain_per_survivor, na.rm = TRUE)) %>%
+  ungroup()
+
+write_csv(pvflp_per_death_site_year, "data/processed/pvflp_per_death_by_cancer_site_by_year.csv")
+write_csv(total_pvflp_per_death_site, "data/processed/total_pvflp_per_death_by_cancer_site.csv")
+
