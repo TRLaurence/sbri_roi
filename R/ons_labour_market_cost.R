@@ -7,7 +7,8 @@ library(tidyr)
 library(readr)
 library(httr)
 library(tibble)
-
+source("R/utils_paths.R")
+source("R/utils_parameter_vals.R")
 # =========================================================
 # Source
 # =========================================================
@@ -426,11 +427,51 @@ write_csv(costs_for_study, "data/processed/cancer_costs_employee_pay_summary.csv
 
 custom_window <- get_cancer_estimates(
   path = path,
-  cause_filter = "bladder cancer",
+  cause_filter = NULL,
   outcome_measure_filter = "Monthly employee pay (£)",
   period = "custom",
-  start_month = -6,
+  start_month = 0,
   end_month = 60,
-  aggregate = TRUE
+  aggregate = FALSE
 )
 
+productivity_loss_by_site_and_year <- custom_window %>%
+  filter(uncertainty == "mean") %>%
+  filter(! cause %in% c("chronic obstructive pulmonary disease", "ischemic heart disease" )) %>%
+  mutate(cause = str_replace_all(cause, " cancer", "")) %>%
+  mutate(year = 1 + months_start %/% 12) %>%
+  group_by(cause, year) %>%
+  summarise(
+    total_cost = -sum(value * interval_months, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(discounted_total_cost = total_cost / ((1+cost_discount_rate) ^ year)) %>%
+  select(cause, year, productivity_loss = discounted_total_cost)
+
+dummy_brain_category <- productivity_loss_by_site_and_year %>%
+  filter(cause == "pancreatic") %>%
+  mutate(cause = "brain")
+
+dummy_melanoma_category <- productivity_loss_by_site_and_year %>%
+  group_by(year) %>%
+  summarise(productivity_loss = mean(productivity_loss, na.rm = TRUE)) %>%
+  mutate(cause = "melanoma")
+
+productivity_loss_by_site_and_year <- bind_rows(
+  productivity_loss_by_site_and_year,
+  dummy_brain_category,
+  dummy_melanoma_category
+)
+
+lookup <- read_csv("data/processed/cancer_site_lookup.csv")
+
+loss_per_site_per_year_death <- read_csv("data/processed/loss_per_death_by_cancer_site_by_year.csv") %>%
+  select(cause = Cause, year = WhichLifeLostYear, loss_per_death) %>%
+  mutate(cause = str_to_lower(cause)) 
+
+
+
+loss_per_site_per_year_death <- loss_per_site_per_year_death %>%
+  left_join(lookup, by = c("cause" = "pvflp_site")) %>%
+  full_join(productivity_loss_by_site_and_year, by = c("ons_site" = "cause", "year")) %>%
+  filter(match_type != "unmatched")
