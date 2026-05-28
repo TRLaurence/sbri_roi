@@ -22,9 +22,11 @@ under_ascertaintment_lower <- 1.5 # This is higher despite being called lower be
 under_ascertaintment_upper <- 0.9
 
 case_study_mapping <- c("NCPC02029" = "BRCA-DIRECT", 
-                        "dummy2" = "Dummy award 1", 
-                        "dummy3" = "Dummy award 2", 
-                        "dummy4" = "Dummy award 3", 
-                        "dummy1" = "Dummy award 4",
+                        "SBRIC01P3030" = "eDERM Open Medical",
+                        "NCPC02028" = "DERM Skin Analytics",
+                        "NCPC02016" = "CYTOPRIME",
+                        "SBRIC01P3031" = "Whole-body MRI",
+                        "SBRIC01P3008" = "Liquid biopsies",
+                        "SBRIC01P3041" = "Orion",
                         "Remaining Awards" = "Remaining Awards",
                         "Overall Programme" = "Overall Programme")

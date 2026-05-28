@@ -24,7 +24,7 @@ COLOR_CATEGORICAL <- c(
 COLOR_STOPLIGHT <- c(
   "Stop" = "#E84E0F",
   "Wait" = "#FFD500",
-  "Go"   = "#8FBF21"
+  "Go"   = COLOR_CATEGORICAL[["SBRI Blue"]]
 )
 
 # This preserves your existing blue-to-orange structure.

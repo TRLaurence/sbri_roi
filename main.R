@@ -26,7 +26,7 @@ source("R/utils_parameter_vals.R")
 
 
 # Import case study specific parameters (filled with initial values)
-param_file <-  "parameters_20260419.csv"
+param_file <-  "parameters_20260528.csv"
 
 # Load the inflation data, cannot read from file if it has never been run
 inflation_df <- inflation_data_loader(load_from_file = TRUE, proc_path = proc_path, file_name = "inflation_data.csv")
@@ -36,7 +36,7 @@ parameter_vals <- parameter_loader(raw_path, param_file)
 name_vals <- graph_names_loader(raw_path, param_file)
 
 # Load the funding data and fill missing values
-funding <- data_loader_funding("funding_data.csv", baseline_split_salaries, baseline_fec_markup)
+funding <- data_loader_funding("funding_data_20260528.csv", baseline_split_salaries, baseline_fec_markup)
 
 # Perform all the adjustments to the funding data
 funding <- all_funding_adjustments(funding, 
@@ -57,6 +57,9 @@ parameter_scenarios <- set_up_all_sensitivities(parameter_vals,
                                                 deterministic_sensitivity,
                                                 probabilistic_sensitivity,
                                                 number_of_samples)
+# REMOVE
+parameter_scenarios <- parameter_scenarios %>%
+  mutate(adjustment_for_sub_population_value = ifelse(is.na(adjustment_for_sub_population_value), 1, adjustment_for_sub_population_value))
 
 research_costs <- parameter_scenarios %>%
   select(case_study = case_study_number, 
@@ -86,8 +89,11 @@ if (rerun_modelling) {
   granular_benefits_df <- read_csv(file.path(proc_path, "granular_benefits_df.csv"))
 }
 
+total_benefits_df <- total_benefits_df %>%
+  filter(!case_study %in% c("SBRIC01P3031"))
+
 # Recreate the overall graphs for the case studies in comparison
-overall_graphs(total_benefits_df, case_study_mapping)
+summary_ci_df <- overall_graphs(total_benefits_df, case_study_mapping, dummy = TRUE)
 
 # Recreate the case study specific graphs
 case_studies_to_rerun <- total_benefits_df$case_study %>% unique() 

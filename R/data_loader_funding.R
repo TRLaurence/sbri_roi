@@ -62,7 +62,7 @@ annualise_funding_to_spend <- function(funding_data) {
 #' @param baseline_fec_markup The default value for fec_markup
 #' @return funding_data with missing values filled, n_years estimated and exploded to annualised spend 
 data_loader_funding <- function(file_name = "funding_data.csv", baseline_split_salaries = 0.6, baseline_fec_markup=1.125) {
-  funding_data <- read_funding_data()
+  funding_data <- read_funding_data(file_name)
   funding_data <- fill_missing_funding_data(funding_data, baseline_split_salaries, baseline_fec_markup)
   funding_data <- estimate_n_years(funding_data)
   funding_data <- annualise_funding_to_spend(funding_data)

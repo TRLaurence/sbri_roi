@@ -52,28 +52,28 @@ graph_probability_histogram <- function(fig_path, case_study_num, probabilistic_
   x_buffer <- 0.02 * (max(probabilistic_df$roi) - min(probabilistic_df$roi))
   
   p <- ggplot(probabilistic_df, aes(x = roi)) +
-    geom_histogram(aes(y = after_stat(count)/sum(after_stat(count))), bins = 20, fill = COLOR_CATEGORICAL['Dark Blue'], color = "black") +
+    geom_histogram(aes(y = after_stat(count)/sum(after_stat(count))), bins = 20, fill = COLOR_CATEGORICAL[["SBRI Blue"]], color = "black") +
     
     # Vertical lines with labels to the right
-    geom_vline(aes(xintercept = reference), color = COLOR_CATEGORICAL['Red'], linetype = "dashed") +
+    geom_vline(aes(xintercept = reference), color = COLOR_STOPLIGHT['Stop'], linetype = "dashed") +
     geom_text(aes(x = reference + x_buffer, y = max_y, label = ref_lab), 
-              color = COLOR_CATEGORICAL['Dark Blue'], 
+              color = COLOR_CATEGORICAL[["SBRI Blue"]], 
               # vjust = -0.5,
               hjust = 0,
               family = FONT_FAMILY, 
               size = 3) +
     
-    geom_vline(aes(xintercept = upper), color = COLOR_CATEGORICAL['Orange'], linetype = "dashed") +
+    geom_vline(aes(xintercept = upper), color = COLOR_STOPLIGHT['Stop'], linetype = "dashed") +
     geom_text(aes(x = upper + x_buffer, y = max_y, label = upper_lab), 
-              color = COLOR_CATEGORICAL['Dark Blue'], 
+              color = COLOR_CATEGORICAL[["SBRI Blue"]], 
               # vjust = -0.5,
               hjust = 0,
               family = FONT_FAMILY, 
               size = 3) +
     
-    geom_vline(aes(xintercept = lower), color = COLOR_CATEGORICAL['Orange'], linetype = "dashed") +
+    geom_vline(aes(xintercept = lower), color =COLOR_STOPLIGHT['Stop'], linetype = "dashed") +
     geom_text(aes(x = lower + x_buffer, y = max_y, label = lower_lab), 
-              color = COLOR_CATEGORICAL['Dark Blue'], 
+              color = COLOR_CATEGORICAL[["SBRI Blue"]], 
               # vjust = -0.5, 
               hjust = 0,
               family = FONT_FAMILY, 
@@ -101,8 +101,8 @@ graph_comparison_roi_ci <- function(fig_path, case_study_num = "comparison", sum
   # Example plot
   summary_ci_df$case_study <- factor(summary_ci_df$case_study, levels = case_study_mapping)
   
-  p <- ggplot(summary_ci_df, aes(x = case_study, y = reference), color = COLOR_CATEGORICAL['Dark Blue']) +
-    geom_point(size = 3) +  # Points for ROI
+  p <- ggplot(summary_ci_df, aes(x = case_study, y = reference)) +
+    geom_point(size = 3, color = COLOR_CATEGORICAL[["SBRI Blue"]]) +  # Points for ROI
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +  # Error bars
     labs(
       title = "",
@@ -125,7 +125,7 @@ graph_boxplot_probability_comparison <- function(fig_path, case_study_num = "com
   # dev.off()
   chart_name <- "comparison_boxplot"
   p <- ggplot(comparison_probability_df, aes(x = case_study, y = roi, group = case_study)) +
-    geom_boxplot(color = COLOR_CATEGORICAL['Dark Blue']) +
+    geom_boxplot(color = COLOR_CATEGORICAL[["SBRI Blue"]]) +
     coord_flip() +
     labs(title = "Comparison of ROIs", x = "Case Study", y = "ROI")
   
@@ -138,7 +138,7 @@ graph_uptake_projection <- function(fig_path, case_study_num, uptake_df) {
   chart_name <- "uptake_projection"
   
   p <- ggplot(uptake_df, aes(x = year, y = coverage, group = scenario)) +
-    geom_line(alpha = 0.1, color = COLOR_CATEGORICAL['Dark Blue']) +
+    geom_line(alpha = 0.1, color = COLOR_CATEGORICAL[["SBRI Blue"]]) +
     labs(title = "", x = "Year", y = "Uptake") +
     scale_y_continuous(labels = percent_format()) +  # Format y-axis as a percentage
     scale_x_continuous(breaks = scales::pretty_breaks(n = 10))  
@@ -147,13 +147,13 @@ graph_uptake_projection <- function(fig_path, case_study_num, uptake_df) {
   return(p)
 }
 
-graph_uptake_confidence_interval <- function(fig_path, case_study_num, uptake_ci_df) {
+graph_uptake_confidence_interval <- function(fig_path, case_study_num, uptake_ci_df, ribbon_colour, line_colour) {
   chart_name <- "uptake_confidence_interval"
   p <- ggplot(uptake_ci_df, aes(x = year, y = reference_coverage)) +
     # Add a swathe for the confidence interval
-    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = COLOR_SEQUENTIAL[['80Dark Blue']], color = "white") +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = ribbon_colour, color = "white") +
     # Add a line just for reference_case
-    geom_line(color = COLOR_SEQUENTIAL[['100Dark Blue']]) +
+    geom_line(color = line_colour) +
     labs(title = "", x = "Year", y = "Uptake") +
     scale_y_continuous(labels = percent_format())  +  # Format y-axis as a percentage
     scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) 
@@ -335,11 +335,11 @@ graph_stacked_benefits_over_costs <- function(fig_path, case_study_num, stacked_
   # Define specific colors for each benefit type and research costs
   colors <- c(
     "Research costs" = COLOR_STOPLIGHT[['Stop']],            # Red for costs
-    "QALY gains" = COLOR_CATEGORICAL[["Dark Blue"]],        
-    "Healthcare cost savings" = COLOR_CATEGORICAL[["Purple"]],  
-    "Social care cost savings" = COLOR_CATEGORICAL[["Teal"]],  
-    "Productivity gains" = COLOR_CATEGORICAL[["Green"]],
-    "Optimism bias adjustment" = COLOR_CATEGORICAL[["Orange"]]
+    "QALY gains" = COLOR_CATEGORICAL[["SBRI Blue"]],        
+    "Healthcare cost savings" = COLOR_CATEGORICAL[["Sky Blue"]],  
+    "Social care cost savings" = COLOR_CATEGORICAL[["Lime Green"]],  
+    "Productivity gains" = COLOR_CATEGORICAL[["Pink"]],
+    "Optimism bias adjustment" = COLOR_CATEGORICAL[["Yellow"]]
   )
   
   
@@ -523,7 +523,7 @@ remap_to_fancy_categories <- function(variable, fancy_categories) {
   return(remapped_variable)
 }
 
-format_df_for_waterfall <- function(data, fancy_categories = NULL, str_wrap_val = 20) {
+format_df_for_waterfall <- function(data, fancy_categories = NULL, str_wrap_val = 18) {
   # Ensure data has 'category' and 'value' columns
   if (!all(c("category", "value") %in% names(data))) {
     stop("Data must contain 'category' and 'value' columns")
@@ -601,7 +601,7 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
     select(-case_study_number) 
   
   #TODO Switch str_wrap_val back to 20
-  pop_waterfall_chart_df <- format_df_for_waterfall(pop_waterfall_chart_df, pop_fancy_categories, str_wrap_val = 20) # 18 for ppt
+  pop_waterfall_chart_df <- format_df_for_waterfall(pop_waterfall_chart_df, pop_fancy_categories, str_wrap_val = 18) # 18 for ppt
   
   benefitting_pop <- all_waterfall_df$benefitting_pop
   
@@ -622,7 +622,7 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
                                 "research_costs" = "Research costs",
                                 "total" = "Total benefits")
   #TODO Switch str_wrap_val back to 20
-  benefit_waterfall_chart_df <- format_df_for_waterfall(benefit_waterfall_chart_df, benefit_fancy_categories, str_wrap_val = 20) # 15 for ppt
+  benefit_waterfall_chart_df <- format_df_for_waterfall(benefit_waterfall_chart_df, benefit_fancy_categories, str_wrap_val = 15) # 15 for ppt
   
     
   stacked_roi_chart_df <- all_waterfall_df %>%
@@ -665,7 +665,7 @@ overall_graphs <- function(total_benefits_df, case_study_mapping, dummy= FALSE) 
   }
   print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = TRUE))
   print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = FALSE))
-  
+  return(summary_ci_df)
 }
 
 case_study_specific_graphs <- function(total_benefits_df, reference_research_costs_only, granular_benefits_df, name_vals, case_study_num= 99999) {
@@ -678,7 +678,7 @@ case_study_specific_graphs <- function(total_benefits_df, reference_research_cos
   coverage_df <- format_granular_to_coverage_df(granular_benefits_df, case_study_num)
   uptake_ci_df <- format_uptake_to_confidence_interval(coverage_df, confidence = 0.90)
   print(graph_uptake_projection(fig_path, case_study_num, coverage_df))
-  print(graph_uptake_confidence_interval(fig_path, case_study_num, uptake_ci_df))
+  print(graph_uptake_confidence_interval(fig_path, case_study_num, uptake_ci_df, ribbon_colour = COLOR_SEQUENTIAL[["100 SBRI Blue"]], line_colour = COLOR_SEQUENTIAL[["80 SBRI Blue"]]))
 
   all_waterfall_list <- format_to_waterfall(granular_benefits_df, reference_research_costs_only, case_study_num, name_vals)
   print(graph_stacked_benefits_over_costs(fig_path, case_study_num, all_waterfall_list$stacked_roi_chart_df))
