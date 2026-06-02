@@ -1,22 +1,6 @@
 library("testthat")
 
 
-# Helper function for Gamma distribution
-gamma_params <- function(mean_value, std_dev) {
-  stopifnot(mean_value > 0, std_dev > 0)
-  beta <- mean_value / (std_dev^2)
-  alpha <- mean_value * beta
-  return(list(alpha = alpha, beta = beta))
-}
-
-# Helper function for Beta distribution
-beta_params <- function(mean_value, std_dev) {
-  stopifnot(mean_value > 0, mean_value < 1, std_dev > 0, std_dev < 1)
-  var_value <- std_dev^2
-  alpha <- ((mean_value * (1 - mean_value)) / var_value - 1) * mean_value
-  beta <- alpha * (1 / mean_value - 1)
-  return(list(alpha = alpha, beta = beta))
-}
 
 test_that("gamma_params", {
   expect_equal(gamma_params(5, 2), list(alpha = 25/4, beta = 5/4))
@@ -178,8 +162,6 @@ test_that("test distribution_mapping", {
   
 })
 
-generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta", "uniform"))
-  
 test_that("test generate_distribution", {
   
   normal_vals <- generate_distribution(1000, 900, 1100, 1000, "normal")
@@ -201,6 +183,12 @@ test_that("test generate_distribution", {
   expect_true(all(beta_vals <= 0.9))
   expect_equal(mean(beta_vals), 0.5, tolerance = 0.1)
   expect_equal(sd(beta_vals), 0.05, tolerance = 0.05)
+  
+  beta_vals <- generate_distribution(0.9, 0.6, 1.2, 1000, "beta")
+  expect_true(all(beta_vals >= 0.2))
+  expect_true(all(beta_vals <= 1.2))
+  expect_equal(mean(beta_vals), 0.9, tolerance = 0.1)
+  expect_equal(sd(beta_vals), 0.2, tolerance = 0.2)
   
   uniform_vals <- generate_distribution(1000, 900, 1100, 1000, "uniform")
   

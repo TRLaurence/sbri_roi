@@ -646,22 +646,24 @@ format_to_waterfall <- function(granular_benefits_df, reference_research_costs_o
 }
 
 ##### FUNCTIONS TO PRODUCE ALL THE GRAPHS######
-overall_graphs <- function(total_benefits_df, case_study_mapping, dummy= FALSE) {
+overall_graphs <- function(total_benefits_df, case_study_mapping, add_overall= FALSE) {
   
   case_study_mapping_wrapped <- str_wrap(case_study_mapping, width = 15)
   names(case_study_mapping_wrapped) <- names(case_study_mapping)
   
   comparison_probability_df <- format_total_to_comparison_prob(total_benefits_df)
+
   print(graph_boxplot_probability_comparison(fig_path, case_study_num = "comparison", comparison_probability_df))
   
-
   summary_ci_df <- format_to_ci(total_benefits_df, case_study_mapping_wrapped, confidence = 0.90)
-  if (dummy){
-    min_roi <- min(summary_ci_df$reference)
-    mean_roi <- mean(summary_ci_df$reference)
+  if (add_overall){
+    remaining_awards <- summary_ci_df %>%
+      filter(is.na(case_study)) %>%
+      summarise(reference = mean(reference), lower = mean(lower), upper = mean(upper)) %>%
+      mutate(case_study = "Remaining\nAwards")
     summary_ci_df <- summary_ci_df %>%
-      bind_rows(data.frame(case_study = "Remaining\nAwards", reference = 1, lower = 0, upper = min_roi)) %>%
-      bind_rows(data.frame(case_study = "Overall\nProgramme", reference = (mean_roi + 1)/2, lower = 1, upper = (mean_roi + min_roi)/2))
+      filter(!is.na(case_study)) %>%
+      bind_rows(remaining_awards) 
   }
   print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = TRUE))
   print(graph_comparison_roi_ci(fig_path, case_study_num = "comparison", summary_ci_df, case_study_mapping_wrapped, log_transform = FALSE))

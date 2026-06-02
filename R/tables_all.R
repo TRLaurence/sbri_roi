@@ -20,7 +20,10 @@ write_aggregated_benefits_table <- function(total_benefits_df, table_path) {
   
   # Format as millions
   aggregated_benefits <- aggregated_benefits %>%
-    mutate_at(vars(-case_study, -scenario), funs(. / 1e6))
+    mutate(across(
+      -c(case_study, scenario, roi),
+      ~ .x / 1e6
+    ))
   
   write_csv(aggregated_benefits, file.path(table_path, "aggregated_benefits.csv"))
   

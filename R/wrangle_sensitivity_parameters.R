@@ -133,62 +133,168 @@ beta_params <- function(mean_value, std_dev) {
   return(list(alpha = alpha, beta = beta))
 }
 
-#' @title Generate a distribution of parameter values for a given distrbution
-#' @param mean_value The mean value of the distribution
-#' @param lower_bound The lower bound of the distribution
-#' @param upper_bound The upper bound of the distribution
-#' @param n The number of samples to generate
-#' @param distribution The distribution to use (normal, gamma, beta, uniform)
-#' @return A vector of n samples from the distribution
+#' @title Generate a distribution of parameter values
+#'
+#' @description
+#' Generates samples from a specified distribution using a mean and lower/upper
+#' uncertainty bounds. For beta distributions, this function supports a scaled
+#' beta distribution on [beta_lower, beta_upper], allowing values above 1 where
+#' this is clinically or structurally plausible.
+#'
+#' @param mean_value The mean value of the distribution on the original scale.
+#' @param lower_bound The lower uncertainty bound, for example the lower 95% CI.
+#' @param upper_bound The upper uncertainty bound, for example the upper 95% CI.
+#' @param n The number of samples to generate.
+#' @param distribution The distribution to use: "normal", "gamma", "beta", or "uniform".
+#' @param ci_level The confidence/credible interval level represented by lower_bound
+#'   and upper_bound. Defaults to 0.95.
+#' @param beta_lower Lower support for the scaled beta distribution. Defaults to 0.
+#' @param beta_upper Upper support for the scaled beta distribution. If NULL, defaults
+#'   to max(1, upper_bound), so beta distributions can extend above 1 when the supplied
+#'   upper bound is above 1.
+#' @param seed Optional random seed. Defaults to NULL.
+#'
+#' @return A vector of n samples from the requested distribution.
 #' @export
-generate_distribution <- function(mean_value, lower_bound, upper_bound, n, distribution = c("normal", "gamma", "beta", "uniform")) {
-  set.seed(1)
-  z_value <- 1.96  # for 95% confidence interval
-  ci_width <- abs(upper_bound - lower_bound)
+generate_distribution <- function(mean_value,
+                                  lower_bound,
+                                  upper_bound,
+                                  n,
+                                  distribution = c("normal", "gamma", "beta", "uniform"),
+                                  ci_level = 0.95,
+                                  beta_lower = 0,
+                                  beta_upper = NULL,
+                                  seed = NULL) {
+  
+  distribution <- match.arg(distribution)
+  
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  
+  if (!is.numeric(n) || length(n) != 1 || n < 0) {
+    stop("n must be a single non-negative number.")
+  }
+  
+  n <- as.integer(n)
+  
+  if (n == 0) {
+    return(numeric(0))
+  }
+  
+  input_values <- c(mean_value, lower_bound, upper_bound)
+  
+  if (any(!is.finite(input_values))) {
+    stop("mean_value, lower_bound, and upper_bound must all be finite numeric values.")
+  }
+  
+  if (!is.numeric(ci_level) || length(ci_level) != 1 || ci_level <= 0 || ci_level >= 1) {
+    stop("ci_level must be a single value between 0 and 1.")
+  }
+  
+  # Ensure lower_bound <= upper_bound
+  if (lower_bound > upper_bound) {
+    temp <- lower_bound
+    lower_bound <- upper_bound
+    upper_bound <- temp
+  }
+  
+  ci_width <- upper_bound - lower_bound
   
   if (ci_width <= 0) {
     return(rep(mean_value, n))
   }
   
-  std_dev <- ci_width / (2 * z_value)  # Calculate the standard deviation
-  
-  distribution <- match.arg(distribution)  # Ensure the distribution is one of the valid options
+  z_value <- qnorm(1 - ((1 - ci_level) / 2))
+  std_dev <- ci_width / (2 * z_value)
   
   if (distribution == "normal") {
-    # Normal distribution
+    
     samples <- rnorm(n, mean = mean_value, sd = std_dev)
     
   } else if (distribution == "gamma") {
-    # Gamma distribution
-    params <- gamma_params(mean_value, std_dev)
-    samples <- rgamma(n, shape = params$alpha, rate = params$beta)
+    
+    if (mean_value <= 0) {
+      stop("mean_value must be greater than 0 for a gamma distribution.")
+    }
+    
+    shape <- mean_value^2 / std_dev^2
+    rate <- mean_value / std_dev^2
+    
+    samples <- rgamma(n, shape = shape, rate = rate)
     
   } else if (distribution == "beta") {
-    # Beta distribution
-    if (mean_value < 0) {
-      stop("Mean for Beta distribution must be between 0 and 1")
-    } else if (mean_value > 1) {
-      stop("Mean for Beta distribution must be between 0 and 1")
-    } else if (mean_value == 0) {
-      mean_value = 0.001
-    } else if (mean_value == 1) {
-      mean_value = 0.999
+    
+    # Scaled beta distribution:
+    # theta = beta_lower + (beta_upper - beta_lower) * X
+    # X ~ Beta(alpha, beta)
+    
+    if (is.null(beta_upper)) {
+      beta_upper <- max(1, upper_bound)
     }
     
-    params <- beta_params(mean_value, std_dev)
-    samples <- rbeta(n, shape1 = params$alpha, shape2 = params$beta)
+    if (!is.finite(beta_lower) || !is.finite(beta_upper)) {
+      stop("beta_lower and beta_upper must be finite numeric values.")
+    }
+    
+    if (beta_upper <= beta_lower) {
+      stop("beta_upper must be greater than beta_lower.")
+    }
+    
+    if (mean_value < beta_lower || mean_value > beta_upper) {
+      stop("mean_value must lie between beta_lower and beta_upper for a scaled beta distribution.")
+    }
+    
+    if ((upper_bound > 1 ) & (upper_bound < 2 )) {
+      "The upper bound is above 1 so moving to a scaled beta"
+    } else if (upper_bound >= 2) {
+      warning("The upper bound is above the intended use for a scaled beta distribution, is this really what you want to do?")
+    }
+    
+    beta_range <- beta_upper - beta_lower
+    
+    scaled_mean <- (mean_value - beta_lower) / beta_range
+    scaled_sd <- std_dev / beta_range
+    scaled_var <- scaled_sd^2
+    
+    # Avoid exact 0 or 1 means, which are incompatible with rbeta moment matching
+    eps <- 1e-6
+    scaled_mean <- min(max(scaled_mean, eps), 1 - eps)
+    
+    max_scaled_var <- scaled_mean * (1 - scaled_mean)
+    
+    if (scaled_var >= max_scaled_var) {
+      print(paste0("mean_value: ", mean_value))
+      print(paste0("lower_bound: ", lower_bound))
+      print(paste0("upper_bound: ", upper_bound))
+      print(paste0("n: ", n))
+      print(paste0("distribution: ", distribution))
+      print(paste0("ci_level: ", ci_level))
+      print(paste0("beta_lower: ", beta_lower))
+      print(paste0("beta_upper: ", beta_upper))
+      stop(
+        paste0(
+          "The implied variance is too large for a scaled beta distribution on [",
+          beta_lower, ", ", beta_upper, "]. ",
+          "Consider increasing beta_upper, narrowing the uncertainty interval, ",
+          "or using a different distribution."
+        )
+      )
+    }
+    
+    precision <- (max_scaled_var / scaled_var) - 1
+    
+    alpha <- scaled_mean * precision
+    beta <- (1 - scaled_mean) * precision
+    
+    samples <- beta_lower + beta_range * rbeta(n, shape1 = alpha, shape2 = beta)
     
   } else if (distribution == "uniform") {
-    # Uniform distribution
-    if (lower_bound > upper_bound) {
-      lower_val_temp <- lower_bound
-      lower_bound <- upper_bound
-      upper_bound <- lower_val_temp
-    }
-
+    
     samples <- runif(n, min = lower_bound, max = upper_bound)
     
   } else {
+    
     stop("Unsupported distribution type.")
   }
   

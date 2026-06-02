@@ -316,7 +316,7 @@ format_to_overall_roi <- function(total_benefits_df, confidence = 0.90) {
     summarise(lower = quantile(weighted_roi, uncertainty/2), 
               upper = quantile(weighted_roi, 1 - uncertainty/2)) 
   
-  list_rois <- list(reference_roi, lower_roi = uncertainty_interval$lower, upper_roi = uncertainty_interval$upper)
+  list_rois <- list(reference_roi = reference_roi, lower_roi = uncertainty_interval$lower, upper_roi = uncertainty_interval$upper)
   
   return(list_rois)
 }
