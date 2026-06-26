@@ -149,9 +149,15 @@ format_results_to_survival_chart_df <- function(modelling_results_case_study) {
 modelling_results <- list()
 
 # From evaluations
-pancreatic_days_speed_up <- 7
-brain_days_speed_up <- 7.3
-melanoma_days_speed_up <- 9.9
+pancreatic_days_speed_up_base <- 7
+pancreatic_days_speed_up_high <- pancreatic_days_speed_up_base*1.2
+pancreatic_days_speed_up_low <- pancreatic_days_speed_up_base*0.8
+brain_days_speed_up_base <- 7.3
+brain_days_speed_up_high <- brain_days_speed_up_base*1.5
+brain_days_speed_up_low <- brain_days_speed_up_base*0.5
+melanoma_days_speed_up_high <- 62.8
+melanoma_days_speed_up_low <- 9.9
+melanoma_days_speed_up_base <- mean(c(melanoma_days_speed_up_high, melanoma_days_speed_up_low))
 
 pancreatic_case_study_title <- "CS_SBRIC01P3008"
 brain_cancer_case_study_title <- "SBRIC01P3041"
@@ -188,17 +194,17 @@ sud_beta_day[["melanoma_low"]]  <- sud_beta_day[["moderate_minus_2sd"]]
 sud_daily_hr_multiplier <- exp(sud_beta_day)
 
 hr_vec <- c(
-  pancreatic_high = delay_hr_n(sud_beta_day[["pancreatic_high"]], -pancreatic_days_speed_up),
-  pancreatic_base = delay_hr_n(sud_beta_day[["pancreatic_base"]], -pancreatic_days_speed_up),
-  pancreatic_low  = delay_hr_n(sud_beta_day[["pancreatic_low"]],  -pancreatic_days_speed_up),
+  pancreatic_high = delay_hr_n(sud_beta_day[["pancreatic_high"]], -pancreatic_days_speed_up_high),
+  pancreatic_base = delay_hr_n(sud_beta_day[["pancreatic_base"]], -pancreatic_days_speed_up_base),
+  pancreatic_low  = delay_hr_n(sud_beta_day[["pancreatic_low"]],  -pancreatic_days_speed_up_low),
   pancreatic_90_day = delay_hr_n(sud_beta_day[["pancreatic_base"]], 90),
-  brain_high      = delay_hr_n(sud_beta_day[["brain_high"]],      -brain_days_speed_up),
-  brain_base      = delay_hr_n(sud_beta_day[["brain_base"]],      -brain_days_speed_up),
-  brain_low       = delay_hr_n(sud_beta_day[["brain_low"]],       -brain_days_speed_up),
+  brain_high      = delay_hr_n(sud_beta_day[["brain_high"]],      -brain_days_speed_up_high),
+  brain_base      = delay_hr_n(sud_beta_day[["brain_base"]],      -brain_days_speed_up_base),
+  brain_low       = delay_hr_n(sud_beta_day[["brain_low"]],       -brain_days_speed_up_low),
   brain_90_day     = delay_hr_n(sud_beta_day[["brain_base"]],      90),
-  melanoma_high   = delay_hr_n(sud_beta_day[["melanoma_high"]],   -melanoma_days_speed_up),
-  melanoma_base   = delay_hr_n(sud_beta_day[["melanoma_base"]],   -melanoma_days_speed_up),
-  melanoma_low    = delay_hr_n(sud_beta_day[["melanoma_low"]],    -melanoma_days_speed_up),
+  melanoma_high   = delay_hr_n(sud_beta_day[["melanoma_high"]],   -melanoma_days_speed_up_high),
+  melanoma_base   = delay_hr_n(sud_beta_day[["melanoma_base"]],   -melanoma_days_speed_up_base),
+  melanoma_low    = delay_hr_n(sud_beta_day[["melanoma_low"]],    -melanoma_days_speed_up_low),
   melanoma_90_day   = delay_hr_n(sud_beta_day[["melanoma_base"]],   90),
   conserv_90_day = delay_hr_n(sud_beta_day[["high_conserv_hanna"]], 90)
 )
@@ -685,3 +691,6 @@ productivity_gain_table <- bind_rows(
     productivity_gain_high = modelling_results[[brain_cancer_case_study_title]]$productivity_high$productivity_gain
   )
 )
+
+write_csv(qaly_table, file.path(proc_path, "qaly_gains_by_case_study.csv"))
+write_csv(productivity_gain_table, file.path(proc_path, "productivity_gains_by_case_study.csv"))
